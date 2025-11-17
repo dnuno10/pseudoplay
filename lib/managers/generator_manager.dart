@@ -1,7 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/tuple.dart';
 import '../models/token.dart';
-import '../models/tipo_token.dart';
 
 final generatorManagerProvider = Provider((ref) => GeneratorManager());
 

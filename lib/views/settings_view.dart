@@ -1,45 +1,137 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../provider/theme_provider.dart';
-import '../theme/app_text_styles.dart';
-import '../theme/app_colors.dart';
+import 'package:go_router/go_router.dart';
 
-class SettingsView extends ConsumerWidget {
+import '../theme/app_colors.dart';
+import '../theme/app_text_styles.dart';
+
+class SettingsView extends StatefulWidget {
   const SettingsView({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final dark = ref.watch(themeProvider);
+  State<SettingsView> createState() => _SettingsViewState();
+}
 
+class _SettingsViewState extends State<SettingsView> {
+  bool isDarkMode = false; // UI only (logic se integra en providers después)
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text("Ajustes", style: AppTextStyles.title)),
-      body: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          children: [
-            SwitchListTile(
-              title: Text("Modo oscuro", style: AppTextStyles.body),
-              value: dark,
-              activeThumbColor: AppColors.purple,
-              onChanged: (v) {
-                ref.read(themeProvider.notifier).toggle(v);
-              },
+      backgroundColor: Colors.white,
+
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 22),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 6),
+              _buildHeader(context),
+
+              const SizedBox(height: 14),
+              Text(
+                "Ajustes",
+                style: AppTextStyles.title.copyWith(fontSize: 32),
+              ),
+
+              const SizedBox(height: 22),
+              _buildSettingsBox(),
+
+              const Spacer(),
+              _buildSaveButton(context),
+              const SizedBox(height: 20),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ------------------------------------------------------------
+  // HEADER < Regresar >
+  // ------------------------------------------------------------
+  Widget _buildHeader(BuildContext context) {
+    return GestureDetector(
+      onTap: () => context.go('/menu'),
+      child: Row(
+        children: [
+          Icon(Icons.arrow_back, size: 28, color: AppColors.black),
+          const SizedBox(width: 6),
+          Text("Regresar", style: AppTextStyles.subtitle),
+        ],
+      ),
+    );
+  }
+
+  // ------------------------------------------------------------
+  // CAJA DE AJUSTES (tema oscuro)
+  // ------------------------------------------------------------
+  Widget _buildSettingsBox() {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.purple, width: 2),
+        color: Colors.white,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            "Apariencia",
+            style: AppTextStyles.subtitle.copyWith(fontSize: 22),
+          ),
+
+          const SizedBox(height: 20),
+
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                "Modo oscuro",
+                style: AppTextStyles.body.copyWith(fontSize: 18),
+              ),
+              Switch(
+                value: isDarkMode,
+                activeColor: AppColors.purple,
+                onChanged: (value) {
+                  setState(() {
+                    isDarkMode = value;
+                  });
+                },
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ------------------------------------------------------------
+  // BOTÓN GUARDAR
+  // ------------------------------------------------------------
+  Widget _buildSaveButton(BuildContext context) {
+    return GestureDetector(
+      onTap: () {
+        // Aquí se integrará themeProvider
+        context.go('/menu');
+      },
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        decoration: BoxDecoration(
+          color: AppColors.green,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Center(
+          child: Text(
+            "Guardar cambios",
+            style: AppTextStyles.subtitle.copyWith(
+              color: Colors.white,
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
             ),
-            const Divider(),
-            ListTile(
-              title: Text("Idioma", style: AppTextStyles.body),
-              subtitle: Text("Español", style: AppTextStyles.small),
-            ),
-            const Divider(),
-            ListTile(
-              title: Text("Versión", style: AppTextStyles.body),
-              subtitle: Text("PseudoPlay 1.0", style: AppTextStyles.small),
-            ),
-            ListTile(
-              title: Text("Créditos", style: AppTextStyles.body),
-              subtitle: Text("By Deni + GPT Compi", style: AppTextStyles.small),
-            ),
-          ],
+          ),
         ),
       ),
     );

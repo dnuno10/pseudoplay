@@ -42,6 +42,13 @@ class InterpreterManager {
       return; // Ya manejó el salto de flujo
     } else if (t is EndTuple) {
       estado.registrarSalida("Fin del programa.");
+      estado.registrarPaso(
+        linea: "Línea ${t.lineaID}",
+        variables: tablaSimbolos.mapaVariables,
+        operacion: 'FIN',
+        variable: '',
+        valorNuevo: '',
+      );
       estado.lineaActual = instrucciones.length;
       return;
     }
@@ -57,7 +64,13 @@ class InterpreterManager {
     tablaSimbolos.actualizar(t.variable, valor);
 
     estado.registrarSalida("${t.variable} = $valor");
-    estado.registrarEstadoVariables(tablaSimbolos.mapaVariables);
+    estado.registrarPaso(
+      linea: "Línea ${t.lineaID}",
+      variables: tablaSimbolos.mapaVariables,
+      operacion: 'ASIGNAR',
+      variable: t.variable,
+      valorNuevo: valor?.toString() ?? '',
+    );
   }
 
   /// ----------------------------------------------------
@@ -70,7 +83,13 @@ class InterpreterManager {
     tablaSimbolos.actualizar(t.variable, dummy);
 
     estado.registrarSalida("Leer ${t.variable} -> $dummy");
-    estado.registrarEstadoVariables(tablaSimbolos.mapaVariables);
+    estado.registrarPaso(
+      linea: "Línea ${t.lineaID}",
+      variables: tablaSimbolos.mapaVariables,
+      operacion: 'LEER',
+      variable: t.variable,
+      valorNuevo: dummy.toString(),
+    );
   }
 
   /// ----------------------------------------------------
@@ -79,6 +98,13 @@ class InterpreterManager {
   void _ejecutarEscribir(WriteTuple t) {
     final valor = _evaluarExpresion(t.valor);
     estado.registrarSalida(valor.toString());
+    estado.registrarPaso(
+      linea: "Línea ${t.lineaID}",
+      variables: tablaSimbolos.mapaVariables,
+      operacion: 'ESCRIBIR',
+      variable: '',
+      valorNuevo: valor?.toString() ?? '',
+    );
   }
 
   /// ----------------------------------------------------
@@ -92,6 +118,14 @@ class InterpreterManager {
     } else {
       estado.lineaActual = t.saltoFalso ?? estado.lineaActual + 1;
     }
+
+    estado.registrarPaso(
+      linea: "Línea ${t.lineaID}",
+      variables: tablaSimbolos.mapaVariables,
+      operacion: 'CONDICIÓN',
+      variable: '',
+      valorNuevo: resultado ? 'VERDADERO' : 'FALSO',
+    );
   }
 
   /// ----------------------------------------------------

@@ -3,7 +3,7 @@ class PredeterminedAlgorithm {
   final String codigo;
   final int nivel;
 
-  PredeterminedAlgorithm({
+  const PredeterminedAlgorithm({
     required this.titulo,
     required this.codigo,
     required this.nivel,

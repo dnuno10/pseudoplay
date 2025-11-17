@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../managers/interpreter_manager.dart';
+import '../managers/execution_controller.dart';
 
 final consoleProvider = Provider<List<String>>((ref) {
-  final interpreter = ref.watch(interpreterManagerProvider);
-  return interpreter.estado.consola;
+  final state = ref.watch(executionControllerProvider);
+  return state.consola;
 });

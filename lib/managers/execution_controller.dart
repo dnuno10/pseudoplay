@@ -16,21 +16,56 @@ class ExecutionState {
   final List<Tuple> tuplas;
   final String? error;
   final bool listo;
+  final Map<String, dynamic> variables;
+  final List<String> consola;
+  final List<Map<String, dynamic>> deskCheck;
+  final int lineaActual;
 
-  const ExecutionState({required this.tuplas, this.error, this.listo = false});
+  const ExecutionState({
+    required this.tuplas,
+    required this.variables,
+    required this.consola,
+    required this.deskCheck,
+    required this.lineaActual,
+    this.error,
+    this.listo = false,
+  });
 
-  ExecutionState copiar({List<Tuple>? tuplas, String? error, bool? listo}) {
+  factory ExecutionState.initial() => const ExecutionState(
+    tuplas: [],
+    variables: {},
+    consola: [],
+    deskCheck: [],
+    lineaActual: 0,
+    listo: false,
+    error: null,
+  );
+
+  ExecutionState copyWith({
+    List<Tuple>? tuplas,
+    String? error,
+    bool? listo,
+    Map<String, dynamic>? variables,
+    List<String>? consola,
+    List<Map<String, dynamic>>? deskCheck,
+    int? lineaActual,
+    bool clearError = false,
+  }) {
     return ExecutionState(
       tuplas: tuplas ?? this.tuplas,
-      error: error,
+      error: clearError ? null : (error ?? this.error),
       listo: listo ?? this.listo,
+      variables: variables ?? this.variables,
+      consola: consola ?? this.consola,
+      deskCheck: deskCheck ?? this.deskCheck,
+      lineaActual: lineaActual ?? this.lineaActual,
     );
   }
 }
 
 class ExecutionController extends Notifier<ExecutionState> {
   @override
-  ExecutionState build() => const ExecutionState(tuplas: []);
+  ExecutionState build() => ExecutionState.initial();
 
   /// ------------------------------------------------------
   /// FLUJO PRINCIPAL: ANALIZAR, PARSEAR, GENERAR
@@ -57,13 +92,21 @@ class ExecutionController extends Notifier<ExecutionState> {
       // 5. Cargar al intérprete
       interprete.cargarPrograma(tuplas);
 
-      state = state.copiar(tuplas: tuplas, error: null, listo: true);
+      state = state.copyWith(
+        tuplas: List.unmodifiable(tuplas),
+        listo: true,
+        variables: const {},
+        consola: const [],
+        deskCheck: const [],
+        lineaActual: 0,
+        clearError: true,
+      );
     } on LexicalException catch (e) {
-      state = state.copiar(error: e.toString(), listo: false);
+      state = state.copyWith(error: e.toString(), listo: false);
     } on SyntaxException catch (e) {
-      state = state.copiar(error: e.toString(), listo: false);
+      state = state.copyWith(error: e.toString(), listo: false);
     } catch (e) {
-      state = state.copiar(error: e.toString(), listo: false);
+      state = state.copyWith(error: e.toString(), listo: false);
     }
   }
 
@@ -71,8 +114,16 @@ class ExecutionController extends Notifier<ExecutionState> {
   /// EJECUTAR 1 PASO
   /// ------------------------------------------------------
   void ejecutarPaso() {
+    if (!state.listo) return;
     final interprete = ref.read(interpreterManagerProvider);
     interprete.ejecutarPaso();
+
+    state = state.copyWith(
+      variables: Map.unmodifiable(interprete.tablaSimbolos.mapaVariables),
+      consola: List.unmodifiable(interprete.estado.consola),
+      deskCheck: List.unmodifiable(_buildDeskCheckRows(interprete)),
+      lineaActual: interprete.estado.lineaActual,
+    );
   }
 
   /// ------------------------------------------------------
@@ -82,6 +133,23 @@ class ExecutionController extends Notifier<ExecutionState> {
     final interprete = ref.read(interpreterManagerProvider);
     interprete.reset();
 
-    state = state.copiar(listo: false);
+    state = ExecutionState.initial();
+  }
+
+  List<Map<String, dynamic>> _buildDeskCheckRows(
+    InterpreterManager interprete,
+  ) {
+    if (interprete.estado.pasos.isEmpty) return const [];
+
+    return interprete.estado.pasos
+        .map(
+          (paso) => {
+            'linea': paso.linea,
+            'operacion': paso.operacion,
+            'variable': paso.variable,
+            'valorNuevo': paso.valorNuevo,
+          },
+        )
+        .toList(growable: false);
   }
 }

@@ -10,8 +10,18 @@ class BlocksManager extends Notifier<List<BlockModel>> {
   List<BlockModel> build() => [];
 
   /// Agregar bloque básico
-  void agregarBloque(String tipo, {Map<String, dynamic>? data}) {
-    state = [...state, BlockModel(tipo: tipo, data: data)];
+  void agregarBloque(
+    String tipo,
+    String display, {
+    Map<String, dynamic>? data,
+  }) {
+    state = [...state, BlockModel(tipo: tipo, display: display, data: data)];
+  }
+
+  void eliminarBloque(int index) {
+    if (index < 0 || index >= state.length) return;
+    final updated = [...state]..removeAt(index);
+    state = updated;
   }
 
   void reset() {
@@ -59,6 +69,7 @@ class BlocksManager extends Notifier<List<BlockModel>> {
           break;
 
         case "finrepite":
+          buffer.writeln("Repite ${b.data!['veces'] ?? ''}".trim());
           buffer.writeln("FinRepite");
           break;
       }

@@ -48,3 +48,25 @@ class CompareTuple extends Tuple {
 class EndTuple extends Tuple {
   EndTuple({required super.lineaID});
 }
+
+class FunctionEntryTuple extends Tuple {
+  final String nombre;
+
+  FunctionEntryTuple({
+    required super.lineaID,
+    required this.nombre,
+    int? saltoFin,
+  }) : super(saltoVerdadero: saltoFin);
+}
+
+class FunctionEndTuple extends Tuple {
+  final String nombre;
+
+  FunctionEndTuple({required super.lineaID, required this.nombre});
+}
+
+class FunctionCallTuple extends Tuple {
+  final String nombre;
+
+  FunctionCallTuple({required super.lineaID, required this.nombre});
+}

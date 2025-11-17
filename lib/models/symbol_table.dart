@@ -1,4 +1,5 @@
 import 'symbol.dart';
+import 'variable_type.dart';
 
 class SymbolTable {
   final Map<String, Symbol> _tabla = {};
@@ -11,10 +12,20 @@ class SymbolTable {
 
   Symbol? obtener(String nombre) => _tabla[nombre];
 
-  void actualizar(String nombre, dynamic valor) {
-    if (_tabla.containsKey(nombre)) {
-      _tabla[nombre]!.valor = valor;
-    }
+  Symbol asegurar(String nombre, {VariableType tipo = VariableType.numero}) {
+    return _tabla.putIfAbsent(
+      nombre,
+      () => Symbol(nombre: nombre, tipo: tipo, valor: null),
+    );
+  }
+
+  void actualizar(
+    String nombre,
+    dynamic valor, {
+    VariableType tipo = VariableType.numero,
+  }) {
+    final simbolo = asegurar(nombre, tipo: tipo);
+    simbolo.valor = valor;
   }
 
   void limpiar() => _tabla.clear();

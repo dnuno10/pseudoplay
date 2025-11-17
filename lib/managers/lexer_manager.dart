@@ -18,6 +18,17 @@ class LexerManager {
     "FinRepite",
     "Leer",
     "Escribir",
+    "Funcion",
+    "FinFuncion",
+    "Llamar",
+    "Fin",
+    "FinPrograma",
+    // Uppercase variants from mockup
+    "INICIO",
+    "VARIABLE",
+    "LEER",
+    "ESCRIBIR",
+    "FIN",
   ];
 
   final List<String> comparadores = ["==", ">=", "<=", "!=", ">", "<"];
