@@ -19,6 +19,7 @@ class _PredeterminedAlgorithmsViewState
     extends ConsumerState<PredeterminedAlgorithmsView>
     with TickerProviderStateMixin {
   late AnimationController _crtController;
+  late TabController _tabController;
 
   @override
   void initState() {
@@ -27,11 +28,13 @@ class _PredeterminedAlgorithmsViewState
       vsync: this,
       duration: const Duration(seconds: 3),
     )..repeat(reverse: true);
+    _tabController = TabController(length: 3, vsync: this);
   }
 
   @override
   void dispose() {
     _crtController.dispose();
+    _tabController.dispose();
     super.dispose();
   }
 
@@ -70,7 +73,9 @@ class _PredeterminedAlgorithmsViewState
               children: [
                 _buildHeader(w, h),
                 Divider(height: 0, thickness: w * 0.01, color: Colors.black),
-                Expanded(child: _buildList(w, h, algorithms)),
+                _buildTabs(w, h),
+                Divider(height: 0, thickness: w * 0.008, color: Colors.black),
+                Expanded(child: _buildTabContent(w, h, algorithms)),
               ],
             ),
           ),
@@ -132,6 +137,69 @@ class _PredeterminedAlgorithmsViewState
           ),
         ],
       ),
+    );
+  }
+
+  // ------------------------------------------------------------
+  // TABS DE NIVEL
+  // ------------------------------------------------------------
+  Widget _buildTabs(double w, double h) {
+    return Container(
+      color: AppColors.purple.withOpacity(0.1),
+      child: TabBar(
+        controller: _tabController,
+        labelColor: Colors.white,
+        unselectedLabelColor: Colors.black.withOpacity(0.5),
+        indicatorColor: AppColors.orange,
+        indicatorWeight: w * 0.01,
+        labelStyle: AppTextStyles.code.copyWith(
+          fontSize: w * 0.042,
+          fontWeight: FontWeight.bold,
+          letterSpacing: 1,
+        ),
+        tabs: [
+          Tab(
+            child: Container(
+              padding: EdgeInsets.symmetric(vertical: h * 0.01),
+              child: const Text('NIVEL 1'),
+            ),
+          ),
+          Tab(
+            child: Container(
+              padding: EdgeInsets.symmetric(vertical: h * 0.01),
+              child: const Text('NIVEL 2'),
+            ),
+          ),
+          Tab(
+            child: Container(
+              padding: EdgeInsets.symmetric(vertical: h * 0.01),
+              child: const Text('NIVEL 3'),
+            ),
+          ),
+        ],
+        indicator: BoxDecoration(
+          color: AppColors.purple,
+          border: Border.all(width: w * 0.008, color: Colors.black),
+        ),
+      ),
+    );
+  }
+
+  // ------------------------------------------------------------
+  // CONTENIDO DE TABS
+  // ------------------------------------------------------------
+  Widget _buildTabContent(
+    double w,
+    double h,
+    List<PredeterminedAlgorithm> algorithms,
+  ) {
+    return TabBarView(
+      controller: _tabController,
+      children: [
+        _buildList(w, h, algorithms.where((a) => a.nivel == 1).toList()),
+        _buildList(w, h, algorithms.where((a) => a.nivel == 2).toList()),
+        _buildList(w, h, algorithms.where((a) => a.nivel == 3).toList()),
+      ],
     );
   }
 

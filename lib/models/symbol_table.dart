@@ -30,6 +30,8 @@ class SymbolTable {
 
   void limpiar() => _tabla.clear();
 
+  void eliminar(String nombre) => _tabla.remove(nombre);
+
   Map<String, dynamic> get mapaVariables => {
     for (var e in _tabla.entries) e.key: e.value.valor,
   };

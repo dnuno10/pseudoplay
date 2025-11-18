@@ -16,6 +16,7 @@ class GeneratorManager {
 
     final List<int> pilaSi = [];
     final List<int> pilaRepite = [];
+    final List<int> pilaFunciones = [];
 
     for (int i = 0; i < estructura.length; i++) {
       final inst = estructura[i];
@@ -90,6 +91,52 @@ class GeneratorManager {
       else if (inst.lineaID == -4000) {
         int inicio = pilaRepite.removeLast();
         ejecutables.add(Tuple(lineaID: inst.lineaID, saltoVerdadero: inicio));
+      }
+      // -------------------------------
+      // ENTRADA DE FUNCIÓN
+      // -------------------------------
+      else if (inst is FunctionEntryTuple) {
+        final entry = FunctionEntryTuple(
+          lineaID: inst.lineaID,
+          nombre: inst.nombre,
+          parametros: List<String>.from(inst.parametros),
+        );
+
+        pilaFunciones.add(ejecutables.length);
+        ejecutables.add(entry);
+      }
+      // -------------------------------
+      // FIN DE FUNCIÓN
+      // -------------------------------
+      else if (inst is FunctionEndTuple) {
+        final fin = FunctionEndTuple(
+          lineaID: inst.lineaID,
+          nombre: inst.nombre,
+        );
+
+        ejecutables.add(fin);
+
+        if (pilaFunciones.isNotEmpty) {
+          final idx = pilaFunciones.removeLast();
+          final entry = ejecutables[idx];
+          if (entry is FunctionEntryTuple) {
+            entry.saltoVerdadero = ejecutables.length;
+          }
+        }
+      }
+      // -------------------------------
+      // LLAMADA A FUNCIÓN
+      // -------------------------------
+      else if (inst is FunctionCallTuple) {
+        ejecutables.add(
+          FunctionCallTuple(
+            lineaID: inst.lineaID,
+            nombre: inst.nombre,
+            argumentos: inst.argumentos
+                .map((argumento) => List<Token>.from(argumento))
+                .toList(),
+          ),
+        );
       }
       // -------------------------------
       // FIN DE PROGRAMA

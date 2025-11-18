@@ -7,11 +7,14 @@ import '../components/block_drop_area.dart';
 import '../managers/blocks_manager.dart';
 import '../models/block_model.dart';
 import '../models/block_palette_item.dart';
+import '../models/game_mode.dart';
 import '../provider/declared_variables_provider.dart';
 import '../provider/editor_provider.dart';
+import '../provider/user_preferences_provider.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_text_styles.dart';
 import '../utils/block_dialogs.dart';
+import '../widgets/retro_snackbar.dart';
 
 class BlocksModeView extends ConsumerStatefulWidget {
   const BlocksModeView({super.key});
@@ -26,8 +29,9 @@ class _BlocksModeViewState extends ConsumerState<BlocksModeView>
   late ScrollController _scroll;
 
   late AnimationController _crtController;
+  late final UserPreferencesNotifier _prefsNotifier;
 
-  final _categorias = ['Variables', 'Entrada', 'Lógica', 'Salida'];
+  final _categorias = ['Variables', 'Entrada/Salida', 'Lógica'];
 
   late Map<String, List<BlockPaletteItem>> _paleta;
   late Map<String, BlockPaletteItem> _index;
@@ -50,10 +54,14 @@ class _BlocksModeViewState extends ConsumerState<BlocksModeView>
       for (final group in _paleta.values)
         for (final item in group) item.id: item,
     };
+
+    _prefsNotifier = ref.read(userPreferencesProvider.notifier);
+    _prefsNotifier.startSession(GameMode.blocks);
   }
 
   @override
   void dispose() {
+    _prefsNotifier.stopSession(GameMode.blocks);
     _tabs.dispose();
     _scroll.dispose();
     _crtController.dispose();
@@ -80,24 +88,22 @@ class _BlocksModeViewState extends ConsumerState<BlocksModeView>
           categoria: 'Variables',
         ),
       ],
-      'Entrada': [
+      'Entrada/Salida': [
         BlockPaletteItem(
           id: 'leer',
           titulo: 'Leer',
           descripcion: 'Solicita un valor',
           color: const Color(0xFF00C851),
           icono: Icons.input,
-          categoria: 'Entrada',
+          categoria: 'Entrada/Salida',
         ),
-      ],
-      'Salida': [
         BlockPaletteItem(
           id: 'escribir',
           titulo: 'Escribir',
           descripcion: 'Imprime en pantalla',
           color: const Color(0xFFFF8800),
           icono: Icons.output,
-          categoria: 'Salida',
+          categoria: 'Entrada/Salida',
         ),
       ],
       'Lógica': [
@@ -164,12 +170,16 @@ class _BlocksModeViewState extends ConsumerState<BlocksModeView>
           _scanlines(w, h),
 
           SafeArea(
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: w * 0.06),
+            child: SingleChildScrollView(
+              padding: EdgeInsets.fromLTRB(
+                w * 0.06,
+                h * 0.01,
+                w * 0.06,
+                100, // Espacio para el botón flotante
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  SizedBox(height: h * 0.01),
                   _header(w),
 
                   SizedBox(height: h * 0.02),
@@ -186,28 +196,32 @@ class _BlocksModeViewState extends ConsumerState<BlocksModeView>
                   _tabsRetro(w, h),
 
                   SizedBox(height: h * 0.02),
-                  Expanded(
-                    child: isWide
-                        ? Row(
-                            children: [
-                              Expanded(child: _paletteView(w, h)),
-                              SizedBox(width: w * 0.03),
-                              Expanded(child: _dropZone(w, h, blocks)),
-                            ],
-                          )
-                        : Column(
-                            children: [
-                              SizedBox(
-                                height: h * 0.30,
+
+                  // Contenido scrolleable
+                  isWide
+                      ? Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: SizedBox(
+                                height: h * 0.6,
                                 child: _paletteView(w, h),
                               ),
-                              SizedBox(height: h * 0.02),
-                              Expanded(child: _dropZone(w, h, blocks)),
-                            ],
-                          ),
-                  ),
-
-                  SizedBox(height: h * 0.08),
+                            ),
+                            SizedBox(width: w * 0.03),
+                            Expanded(child: _dropZone(w, h, blocks)),
+                          ],
+                        )
+                      : Column(
+                          children: [
+                            SizedBox(
+                              height: h * 0.30,
+                              child: _paletteView(w, h),
+                            ),
+                            SizedBox(height: h * 0.02),
+                            _dropZone(w, h, blocks),
+                          ],
+                        ),
                 ],
               ),
             ),
@@ -280,17 +294,17 @@ class _BlocksModeViewState extends ConsumerState<BlocksModeView>
           border: Border.all(width: w * 0.009, color: Colors.black),
         ),
         labelStyle: AppTextStyles.code.copyWith(
-          fontSize: w * 0.04,
+          fontSize: w * 0.032,
           color: Colors.white,
         ),
         unselectedLabelStyle: AppTextStyles.code.copyWith(
-          fontSize: w * 0.04,
+          fontSize: w * 0.032,
           color: Colors.white70,
         ),
         indicatorSize: TabBarIndicatorSize.tab,
         tabs: _categorias.map((e) {
           return SizedBox(
-            height: h * 0.05,
+            height: h * 0.045,
             child: Center(child: Text(e.toUpperCase())),
           );
         }).toList(),
@@ -384,6 +398,10 @@ class _BlocksModeViewState extends ConsumerState<BlocksModeView>
             data = {};
         }
 
+        if (!mounted) {
+          return;
+        }
+
         if (data == null &&
             item.id != 'sino' &&
             item.id != 'finsi' &&
@@ -474,12 +492,11 @@ class _BlocksModeViewState extends ConsumerState<BlocksModeView>
   }
 
   void _showError(BuildContext context, String msg) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(msg, style: AppTextStyles.code),
-        backgroundColor: const Color(0xFFFF4D00),
-        duration: const Duration(seconds: 3),
-      ),
+    RetroSnackBar.show(
+      context,
+      message: msg,
+      tone: RetroSnackTone.error,
+      icon: Icons.warning_rounded,
     );
   }
 }

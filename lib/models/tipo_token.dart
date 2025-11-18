@@ -2,6 +2,7 @@ enum TipoToken {
   identificador,
   numero,
   texto,
+  cadena,
   operador,
   asignacion,
   parentesisApertura,

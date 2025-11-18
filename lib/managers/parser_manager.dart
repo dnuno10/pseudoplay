@@ -31,6 +31,41 @@ class ParserManager {
       _saltarSeparadores();
       if (_fin) break;
 
+      // Ignorar INICIO (inicio de programa)
+      if (_esLexema("INICIO") || _esLexema("inicio-programa")) {
+        _avanzar();
+        continue;
+      }
+
+      // Reconocer FIN (fin de programa)
+      if (_esLexema("FIN") ||
+          _esLexema("Fin") ||
+          _esLexema("FinPrograma") ||
+          _esLexema("fin-programa")) {
+        instrucciones.add(_parseFinPrograma());
+        continue;
+      }
+
+      // Reconocer VARIABLE (declaración de variable)
+      if (_esLexema("VARIABLE")) {
+        instrucciones.add(_parseVariable());
+        continue;
+      }
+
+      // Reconocer LEER (versión mayúscula)
+      if (_esLexema("LEER") || _esLexema("Leer") || _esLexema("leer")) {
+        instrucciones.add(_parseLeer());
+        continue;
+      }
+
+      // Reconocer ESCRIBIR (versión mayúscula)
+      if (_esLexema("ESCRIBIR") ||
+          _esLexema("Escribir") ||
+          _esLexema("escribir")) {
+        instrucciones.add(_parseEscribir());
+        continue;
+      }
+
       if (_esLexema("Si")) {
         instrucciones.add(_parseSi());
         continue;
@@ -46,23 +81,13 @@ class ParserManager {
         continue;
       }
 
-      if (_esLexema("Repite")) {
+      if (_esLexema("Repite") || _esLexema("mientras")) {
         instrucciones.add(_parseRepite());
         continue;
       }
 
-      if (_esLexema("FinRepite")) {
+      if (_esLexema("FinRepite") || _esLexema("fin-mientras")) {
         instrucciones.add(_parseFinRepite());
-        continue;
-      }
-
-      if (_esLexema("Leer")) {
-        instrucciones.add(_parseLeer());
-        continue;
-      }
-
-      if (_esLexema("Escribir")) {
-        instrucciones.add(_parseEscribir());
         continue;
       }
 
@@ -78,11 +103,6 @@ class ParserManager {
 
       if (_esLexema("Llamar")) {
         instrucciones.add(_parseLlamarFuncion());
-        continue;
-      }
-
-      if (_esLexema("Fin") || _esLexema("FinPrograma")) {
-        instrucciones.add(_parseFinPrograma());
         continue;
       }
 
@@ -137,14 +157,46 @@ class ParserManager {
   }
 
   /// ----------------------------------------------------
-  /// PARSEAR LEER:   Leer variable
+  /// PARSEAR VARIABLE:  VARIABLE nombre = valor
   /// ----------------------------------------------------
-  ReadTuple _parseLeer() {
-    final inicio = _consumirLexema("Leer");
+  AssignTuple _parseVariable() {
+    final inicio = _actual;
+    _avanzar(); // Saltar "VARIABLE"
 
     if (_fin || !_esTipoActual(TipoToken.identificador)) {
       throw SyntaxException(
-        "Se esperaba una variable después de Leer",
+        "Se esperaba un nombre de variable después de VARIABLE",
+        inicio.linea,
+      );
+    }
+
+    final variable = _actual;
+    _avanzar();
+
+    _consumirTipo(
+      TipoToken.asignacion,
+      "Se esperaba '=' después de ${variable.lexema}",
+    );
+
+    final expresion = _capturarHastaFinLinea();
+
+    return AssignTuple(
+      lineaID: variable.linea,
+      variable: variable.lexema,
+      expresion: expresion,
+    );
+  }
+
+  /// ----------------------------------------------------
+  /// PARSEAR LEER:   Leer variable
+  /// ----------------------------------------------------
+  ReadTuple _parseLeer() {
+    final inicio = _actual;
+    _avanzar(); // Saltar "LEER", "Leer" o "leer"
+
+    if (_fin || !_esTipoActual(TipoToken.identificador)) {
+      throw SyntaxException(
+        "Se esperaba una variable después de ${inicio.lexema}",
         inicio.linea,
       );
     }
@@ -159,7 +211,8 @@ class ParserManager {
   /// PARSEAR ESCRIBIR:   Escribir valor
   /// ----------------------------------------------------
   WriteTuple _parseEscribir() {
-    final inicio = _consumirLexema("Escribir");
+    final inicio = _actual;
+    _avanzar(); // Saltar "ESCRIBIR", "Escribir" o "escribir"
     final expr = _capturarHastaFinLinea();
 
     return WriteTuple(lineaID: inicio.linea, valor: expr);
@@ -236,14 +289,19 @@ class ParserManager {
     final linea = inicio.linea;
     _avanzar();
 
+    var parametros = <String>[];
     if (!_fin && _esTipoActual(TipoToken.parentesisApertura)) {
       _avanzar();
-      _descartarArgumentos();
+      parametros = _parseParameterList();
     }
 
     _funcionesPendientes.add(_FunctionBlock(nombre: nombre, linea: linea));
 
-    return FunctionEntryTuple(lineaID: linea, nombre: nombre);
+    return FunctionEntryTuple(
+      lineaID: linea,
+      nombre: nombre,
+      parametros: parametros,
+    );
   }
 
   FunctionEndTuple _parseFinFuncion() {
@@ -271,12 +329,17 @@ class ParserManager {
     final linea = inicio.linea;
     _avanzar();
 
+    var argumentos = <List<Token>>[];
     if (!_fin && _esTipoActual(TipoToken.parentesisApertura)) {
       _avanzar();
-      _descartarArgumentos();
+      argumentos = _parseArgumentList();
     }
 
-    return FunctionCallTuple(lineaID: linea, nombre: nombre);
+    return FunctionCallTuple(
+      lineaID: linea,
+      nombre: nombre,
+      argumentos: argumentos,
+    );
   }
 
   FunctionCallTuple _parseLlamadoInline() {
@@ -288,9 +351,13 @@ class ParserManager {
       TipoToken.parentesisApertura,
       "Se esperaba '(' para invocar $nombre",
     );
-    _descartarArgumentos();
+    final argumentos = _parseArgumentList();
 
-    return FunctionCallTuple(lineaID: linea, nombre: nombre);
+    return FunctionCallTuple(
+      lineaID: linea,
+      nombre: nombre,
+      argumentos: argumentos,
+    );
   }
 
   EndTuple _parseFinPrograma() {
@@ -306,11 +373,12 @@ class ParserManager {
     final pila = <_Bloque>[];
 
     for (final token in tokens) {
-      switch (token.lexema) {
-        case "Si":
+      final lexema = _normalizeLexema(token.lexema);
+      switch (lexema) {
+        case "SI":
           pila.add(_Bloque(tipo: _BloqueTipo.si));
           break;
-        case "Sino":
+        case "SINO":
           if (pila.isEmpty || pila.last.tipo != _BloqueTipo.si) {
             throw SyntaxException("Sino sin bloque Si", token.linea);
           }
@@ -319,19 +387,21 @@ class ParserManager {
           }
           pila.last.tieneSino = true;
           break;
-        case "FinSi":
+        case "FINSI":
           _cerrarBloque(pila, _BloqueTipo.si, token);
           break;
-        case "Repite":
+        case "REPITE":
+        case "MIENTRAS":
           pila.add(_Bloque(tipo: _BloqueTipo.repite));
           break;
-        case "FinRepite":
+        case "FINREPITE":
+        case "FIN-MIENTRAS":
           _cerrarBloque(pila, _BloqueTipo.repite, token);
           break;
-        case "Funcion":
+        case "FUNCION":
           pila.add(_Bloque(tipo: _BloqueTipo.funcion));
           break;
-        case "FinFuncion":
+        case "FINFUNCION":
           _cerrarBloque(pila, _BloqueTipo.funcion, token);
           break;
       }
@@ -366,7 +436,8 @@ class ParserManager {
     if (!_fin) _indice++;
   }
 
-  bool _esLexema(String lexema) => !_fin && _actual.lexema == lexema;
+  bool _esLexema(String lexema) =>
+      !_fin && _normalizeLexema(_actual.lexema) == _normalizeLexema(lexema);
 
   bool _esTipoActual(TipoToken tipo) => !_fin && _actual.tipo == tipo;
 
@@ -378,7 +449,10 @@ class ParserManager {
 
   Token _consumirLexema(String lexema) {
     if (!_esLexema(lexema)) {
-      throw SyntaxException("Se esperaba '$lexema'", _lineaActual);
+      throw SyntaxException(
+        "Se esperaba '${_normalizeLexema(lexema)}'",
+        _lineaActual,
+      );
     }
     final token = _actual;
     _avanzar();
@@ -414,35 +488,124 @@ class ParserManager {
 
     while (!_fin && !_esLexema(lexema)) {
       if (_actualEsFinLinea) {
-        throw SyntaxException("Se esperaba '$lexema'", _lineaActual);
+        throw SyntaxException(
+          "Se esperaba '${_normalizeLexema(lexema)}'",
+          _lineaActual,
+        );
       }
       resultado.add(_actual);
       _avanzar();
     }
 
     if (_fin) {
-      throw SyntaxException("Se esperaba '$lexema'", _lineaActual);
+      throw SyntaxException(
+        "Se esperaba '${_normalizeLexema(lexema)}'",
+        _lineaActual,
+      );
     }
 
     return List<Token>.from(resultado);
   }
 
-  void _descartarArgumentos() {
-    int profundidad = 1;
+  List<String> _parseParameterList() {
+    final parametros = <String>[];
+    var esperandoIdentificador = true;
+    var cerroParentesis = false;
+
+    while (!_fin) {
+      if (_esTipoActual(TipoToken.parentesisCierre)) {
+        cerroParentesis = true;
+        _avanzar();
+        break;
+      }
+
+      if (_actualEsFinLinea) {
+        throw SyntaxException(
+          "Los parámetros deben cerrar en la misma línea",
+          _lineaActual,
+        );
+      }
+
+      if (esperandoIdentificador) {
+        if (_esTipoActual(TipoToken.identificador)) {
+          parametros.add(_actual.lexema);
+          _avanzar();
+          esperandoIdentificador = false;
+          continue;
+        }
+        throw SyntaxException(
+          "Se esperaba un nombre de parámetro",
+          _lineaActual,
+        );
+      }
+
+      if (_esTipoActual(TipoToken.coma)) {
+        _avanzar();
+        esperandoIdentificador = true;
+        continue;
+      }
+
+      throw SyntaxException("Se esperaba ',' entre parámetros", _lineaActual);
+    }
+
+    if (!cerroParentesis) {
+      throw SyntaxException("Se esperaba cierre de paréntesis", _lineaActual);
+    }
+
+    if (esperandoIdentificador && parametros.isNotEmpty) {
+      throw SyntaxException("Falta nombre de parámetro", _lineaActual);
+    }
+
+    return parametros;
+  }
+
+  List<List<Token>> _parseArgumentList() {
+    final argumentos = <List<Token>>[];
+    final acumulado = <Token>[];
+    var profundidad = 1;
 
     while (!_fin && profundidad > 0) {
-      if (_actual.tipo == TipoToken.parentesisApertura) {
+      if (_esTipoActual(TipoToken.parentesisApertura)) {
+        acumulado.add(_actual);
         profundidad++;
-      } else if (_actual.tipo == TipoToken.parentesisCierre) {
-        profundidad--;
+        _avanzar();
+        continue;
       }
+
+      if (_esTipoActual(TipoToken.parentesisCierre)) {
+        profundidad--;
+        if (profundidad == 0) {
+          if (acumulado.isNotEmpty) {
+            argumentos.add(List<Token>.from(acumulado));
+            acumulado.clear();
+          }
+          _avanzar();
+          break;
+        }
+        acumulado.add(_actual);
+        _avanzar();
+        continue;
+      }
+
+      if (_esTipoActual(TipoToken.coma) && profundidad == 1) {
+        argumentos.add(List<Token>.from(acumulado));
+        acumulado.clear();
+        _avanzar();
+        continue;
+      }
+
+      acumulado.add(_actual);
       _avanzar();
     }
 
     if (profundidad != 0) {
-      throw SyntaxException("Se esperaba ')'", _lineaActual);
+      throw SyntaxException("Se esperaba cierre de paréntesis", _lineaActual);
     }
+
+    return argumentos;
   }
+
+  String _normalizeLexema(String lexema) => lexema.trim().toUpperCase();
 }
 
 class _FunctionBlock {

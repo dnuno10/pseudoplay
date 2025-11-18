@@ -3,7 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../provider/editor_provider.dart';
+import '../provider/execution_speed_provider.dart';
 import '../managers/execution_controller.dart';
+import '../managers/interpreter_manager.dart';
+import '../models/game_mode.dart';
+import '../provider/user_preferences_provider.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_text_styles.dart';
 
@@ -16,10 +20,14 @@ class CodeExecutionView extends ConsumerStatefulWidget {
 
 class _CodeExecutionViewState extends ConsumerState<CodeExecutionView>
     with TickerProviderStateMixin {
-  String? _lastSnapshot;
-  bool _pending = false;
-
   late AnimationController _crtController;
+  late AnimationController _pulseController;
+  final ScrollController _scrollController = ScrollController();
+  late final UserPreferencesNotifier _prefsNotifier;
+
+  // Estados de ejecución
+  bool _isExecuting = false;
+  bool _showScrollHint = false;
 
   @override
   void initState() {
@@ -29,30 +37,200 @@ class _CodeExecutionViewState extends ConsumerState<CodeExecutionView>
       vsync: this,
       duration: const Duration(seconds: 3),
     )..repeat(reverse: true);
+
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    )..repeat(reverse: true);
+
+    _prefsNotifier = ref.read(userPreferencesProvider.notifier);
+    _prefsNotifier.startSession(GameMode.execution);
+
+    // Procesar código y luego iniciar ejecución automática
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        final codigo = ref.read(editorProvider);
+        ref.read(executionControllerProvider.notifier).procesarCodigo(codigo);
+
+        // Esperar un poco y luego iniciar ejecución automática
+        Future.delayed(const Duration(milliseconds: 300), () {
+          if (mounted) {
+            _startAutoExecution();
+          }
+        });
+      }
+    });
   }
 
   @override
   void dispose() {
+    _prefsNotifier.stopSession(GameMode.execution);
     _crtController.dispose();
+    _pulseController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
-  // ------------------------------------------------------------
-  // DEBOUNCE PARA PROCESAR CÓDIGO
-  // ------------------------------------------------------------
-  void _schedule(String code) {
-    final normalized = code.trim();
-    if (normalized.isEmpty) return;
-    if (_pending && normalized == _lastSnapshot) return;
+  void _scrollToBottom() {
+    if (_scrollController.hasClients) {
+      _scrollController.animateTo(
+        _scrollController.position.maxScrollExtent,
+        duration: const Duration(milliseconds: 500),
+        curve: Curves.easeOut,
+      );
+      setState(() => _showScrollHint = true);
+      // Ocultar flecha después de 3 segundos
+      Future.delayed(const Duration(seconds: 3), () {
+        if (mounted) setState(() => _showScrollHint = false);
+      });
+    }
+  }
 
-    _pending = true;
+  // Iniciar ejecución automática
+  void _startAutoExecution() async {
+    final speed = ref.read(executionSpeedProvider);
+    if (speed == 0) return; // Modo manual
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      _pending = false;
-      _lastSnapshot = normalized;
-      ref.read(executionControllerProvider.notifier).procesarCodigo(code);
-    });
+    setState(() => _isExecuting = true);
+
+    while (_isExecuting && mounted) {
+      final exec = ref.read(executionControllerProvider);
+      final interprete = ref.read(interpreterManagerProvider);
+
+      // Verificar si está esperando input
+      if (exec.esperandoInput) {
+        await _mostrarDialogoLeer();
+        continue;
+      }
+
+      // Verificar si ya terminó la ejecución
+      if (exec.listo &&
+          interprete.estado.lineaActual < interprete.instrucciones.length) {
+        ref.read(executionControllerProvider.notifier).ejecutarPaso();
+        final currentSpeed = ref.read(executionSpeedProvider);
+        await Future.delayed(
+          Duration(milliseconds: (currentSpeed * 1000).toInt()),
+        );
+      } else {
+        if (!mounted) return;
+        setState(() => _isExecuting = false);
+        // Scroll automático a la salida cuando termine
+        _scrollToBottom();
+        break;
+      }
+    }
+  }
+
+  void _stopExecution() {
+    setState(() => _isExecuting = false);
+  }
+
+  void _executeNextStep() async {
+    ref.read(executionControllerProvider.notifier).ejecutarPaso();
+
+    // Verificar si ahora está esperando input
+    final exec = ref.read(executionControllerProvider);
+    if (exec.esperandoInput) {
+      await _mostrarDialogoLeer();
+    }
+  }
+
+  void _executePreviousStep() {
+    ref.read(executionControllerProvider.notifier).retrocederPaso();
+  }
+
+  Future<void> _mostrarDialogoLeer() async {
+    final exec = ref.read(executionControllerProvider);
+    if (!exec.esperandoInput || exec.variableInput == null) return;
+
+    final controller = TextEditingController();
+
+    final resultado = await showDialog<String>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: Container(
+          width: MediaQuery.of(context).size.width * 0.8,
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: AppColors.purple,
+            border: Border.all(width: 4, color: Colors.black),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.5),
+                offset: const Offset(6, 6),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'LEER ${exec.variableInput}',
+                style: AppTextStyles.title.copyWith(
+                  color: Colors.white,
+                  fontSize: 24,
+                ),
+              ),
+              const SizedBox(height: 20),
+              TextField(
+                controller: controller,
+                autofocus: true,
+                keyboardType: TextInputType.number,
+                style: AppTextStyles.body.copyWith(fontSize: 18),
+                decoration: InputDecoration(
+                  filled: true,
+                  fillColor: Colors.white,
+                  border: OutlineInputBorder(
+                    borderSide: const BorderSide(width: 3, color: Colors.black),
+                    borderRadius: BorderRadius.zero,
+                  ),
+                  hintText: 'Ingresa un número',
+                  hintStyle: AppTextStyles.body.copyWith(color: Colors.grey),
+                ),
+                onSubmitted: (value) => Navigator.of(context).pop(value),
+              ),
+              const SizedBox(height: 20),
+              GestureDetector(
+                onTap: () => Navigator.of(context).pop(controller.text),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 32,
+                    vertical: 12,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.orange,
+                    border: Border.all(width: 3, color: Colors.black),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.3),
+                        offset: const Offset(3, 3),
+                      ),
+                    ],
+                  ),
+                  child: Text(
+                    'CONFIRMAR',
+                    style: AppTextStyles.subtitle.copyWith(
+                      color: Colors.white,
+                      fontSize: 18,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    if (!mounted) return;
+
+    if (resultado != null && resultado.isNotEmpty) {
+      ref
+          .read(executionControllerProvider.notifier)
+          .continuarConInput(resultado);
+    }
   }
 
   @override
@@ -64,7 +242,7 @@ class _CodeExecutionViewState extends ConsumerState<CodeExecutionView>
     final codigo = ref.watch(editorProvider);
     final exec = ref.watch(executionControllerProvider);
 
-    _schedule(codigo);
+    // NO llamar _schedule aquí, ya se procesó en initState
 
     return Scaffold(
       backgroundColor: const Color(0xFFF4EEDB),
@@ -77,7 +255,8 @@ class _CodeExecutionViewState extends ConsumerState<CodeExecutionView>
           IgnorePointer(child: _buildScanlines(w, h)),
 
           SafeArea(
-            child: Padding(
+            child: SingleChildScrollView(
+              controller: _scrollController,
               padding: EdgeInsets.all(w * 0.06),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -85,16 +264,31 @@ class _CodeExecutionViewState extends ConsumerState<CodeExecutionView>
                   _buildHeader(w),
                   SizedBox(height: h * 0.02),
                   _buildControlButtons(w, h),
+                  if (_isExecuting) ...[
+                    SizedBox(height: h * 0.015),
+                    _buildExecutingIndicator(w),
+                  ],
                   SizedBox(height: h * 0.02),
                   _buildEditor(codigo, w, h),
                   SizedBox(height: h * 0.02),
                   _buildVariables(exec.variables, w, h),
                   SizedBox(height: h * 0.02),
                   _buildConsole(exec.consola, exec.error, w, h),
+
+                  // Botón para ver prueba de escritorio (solo si ha terminado)
+                  if (_haTerminado(exec)) ...[
+                    SizedBox(height: h * 0.02),
+                    _buildDeskCheckButton(w, h),
+                  ],
+
+                  SizedBox(height: h * 0.03), // Espacio adicional al final
                 ],
               ),
             ),
           ),
+
+          // Flecha indicadora de scroll
+          if (_showScrollHint) _buildScrollHint(w, h),
         ],
       ),
     );
@@ -124,30 +318,174 @@ class _CodeExecutionViewState extends ConsumerState<CodeExecutionView>
   }
 
   // ------------------------------------------------------------
-  // BOTONES PLAY / STOP RETRO
+  // VERIFICAR SI HA TERMINADO LA EJECUCIÓN
+  // ------------------------------------------------------------
+  bool _haTerminado(ExecutionState exec) {
+    if (!exec.listo) return false;
+    final interprete = ref.read(interpreterManagerProvider);
+    return interprete.estado.lineaActual >= interprete.instrucciones.length;
+  }
+
+  // ------------------------------------------------------------
+  // BOTÓN PARA VER PRUEBA DE ESCRITORIO
+  // ------------------------------------------------------------
+  Widget _buildDeskCheckButton(double w, double h) {
+    return Center(
+      child: GestureDetector(
+        onTap: () => context.go('/deskcheck'),
+        child: Container(
+          padding: EdgeInsets.symmetric(
+            horizontal: w * 0.08,
+            vertical: h * 0.02,
+          ),
+          decoration: BoxDecoration(
+            color: AppColors.green,
+            border: Border.all(width: w * 0.008, color: Colors.black),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.5),
+                offset: const Offset(4, 4),
+                blurRadius: 0,
+              ),
+            ],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.table_chart, color: Colors.white, size: w * 0.06),
+              SizedBox(width: w * 0.03),
+              Text(
+                'VER PRUEBA DE ESCRITORIO',
+                style: AppTextStyles.subtitle.copyWith(
+                  color: Colors.white,
+                  fontSize: w * 0.04,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ------------------------------------------------------------
+  // INDICADOR DE EJECUCIÓN
+  // ------------------------------------------------------------
+  Widget _buildExecutingIndicator(double w) {
+    return AnimatedBuilder(
+      animation: _pulseController,
+      builder: (_, __) {
+        return Opacity(
+          opacity: 0.5 + (_pulseController.value * 0.5),
+          child: Row(
+            children: [
+              Container(
+                width: w * 0.03,
+                height: w * 0.03,
+                decoration: const BoxDecoration(
+                  color: Color(0xFF00C851),
+                  shape: BoxShape.circle,
+                ),
+              ),
+              SizedBox(width: w * 0.02),
+              Text(
+                'Ejecutando...',
+                style: AppTextStyles.code.copyWith(
+                  fontSize: w * 0.035,
+                  color: const Color(0xFF00C851),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  // ------------------------------------------------------------
+  // BOTONES DE CONTROL
   // ------------------------------------------------------------
   Widget _buildControlButtons(double w, double h) {
+    final speed = ref.watch(executionSpeedProvider);
+    final exec = ref.watch(executionControllerProvider);
+    final interprete = ref.read(interpreterManagerProvider);
+    final haEmpezado =
+        exec.lineaActual > 0 || interprete.estado.lineaActual > 0;
+
     return Row(
       children: [
-        _retroButton(
-          w,
-          h,
-          color: const Color(0xFF00C851),
-          icon: Icons.play_arrow,
-          onTap: () {
-            ref.read(executionControllerProvider.notifier).ejecutarPaso();
-          },
-        ),
-        SizedBox(width: w * 0.03),
-        _retroButton(
-          w,
-          h,
-          color: AppColors.orange,
-          icon: Icons.stop,
-          onTap: () {
-            ref.read(executionControllerProvider.notifier).reiniciar();
-          },
-        ),
+        if (speed == 0) ...[
+          // Modo Manual - Botones Anterior y Siguiente
+          _retroButton(
+            w,
+            h,
+            color: const Color(0xFF2962FF),
+            icon: Icons.skip_previous,
+            label: 'ANTERIOR',
+            onTap: _executePreviousStep,
+          ),
+          SizedBox(width: w * 0.02),
+          _retroButton(
+            w,
+            h,
+            color: const Color(0xFF2962FF),
+            icon: Icons.skip_next,
+            label: 'SIGUIENTE',
+            onTap: _executeNextStep,
+          ),
+          SizedBox(width: w * 0.02),
+          // Botón de reiniciar solo con icono en modo manual
+          _retroButton(
+            w,
+            h,
+            color: AppColors.orange,
+            icon: Icons.refresh,
+            onTap: () {
+              _stopExecution();
+              ref.read(executionControllerProvider.notifier).reiniciar();
+            },
+          ),
+        ] else ...[
+          // Modo Automático
+          if (!haEmpezado && !_isExecuting) ...[
+            // Mostrar EJECUTAR solo si no ha comenzado
+            _retroButton(
+              w,
+              h,
+              color: const Color(0xFF00C851),
+              icon: Icons.play_arrow,
+              label: 'EJECUTAR',
+              onTap: _startAutoExecution,
+            ),
+            SizedBox(width: w * 0.02),
+          ] else if (_isExecuting) ...[
+            // Mostrar PAUSAR si está ejecutando
+            _retroButton(
+              w,
+              h,
+              color: AppColors.orange,
+              icon: Icons.pause,
+              label: 'PAUSAR',
+              onTap: _stopExecution,
+            ),
+            SizedBox(width: w * 0.02),
+          ],
+          // Siempre mostrar REINICIAR, pero solo si ha empezado
+          if (haEmpezado) ...[
+            _retroButton(
+              w,
+              h,
+              color: AppColors.orange,
+              icon: Icons.refresh,
+              label: 'REINICIAR',
+              onTap: () {
+                _stopExecution();
+                ref.read(executionControllerProvider.notifier).reiniciar();
+              },
+            ),
+          ],
+        ],
       ],
     );
   }
@@ -158,27 +496,75 @@ class _CodeExecutionViewState extends ConsumerState<CodeExecutionView>
     required Color color,
     required IconData icon,
     required VoidCallback onTap,
+    String? label,
   }) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: w * 0.15,
-        height: w * 0.15,
+        padding: EdgeInsets.symmetric(horizontal: w * 0.03, vertical: w * 0.02),
         decoration: BoxDecoration(
           color: color,
           border: Border.all(width: w * 0.008, color: Colors.black),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.5),
+              offset: const Offset(3, 3),
+              blurRadius: 0,
+            ),
+          ],
         ),
-        child: Icon(icon, color: Colors.white, size: w * 0.09),
+        child: label != null
+            ? Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(icon, color: Colors.white, size: w * 0.06),
+                  SizedBox(width: w * 0.02),
+                  Text(
+                    label,
+                    style: AppTextStyles.code.copyWith(
+                      fontSize: w * 0.035,
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              )
+            : Icon(icon, color: Colors.white, size: w * 0.09),
       ),
     );
   }
 
   // ------------------------------------------------------------
-  // EDITOR RETRO
+  // EDITOR RETRO CON NÚMEROS DE LÍNEA
   // ------------------------------------------------------------
   Widget _buildEditor(String code, double w, double h) {
+    final lines = code.isEmpty
+        ? ["// Escribe tu pseudocódigo aquí", "INICIO..."]
+        : code.split('\n');
+
+    final execState = ref.watch(executionControllerProvider);
+    final interprete = ref.watch(interpreterManagerProvider);
+
+    // Obtener el número de línea real del código (lineaID ajustado para iniciar en 1)
+    int currentLineNumber = -1;
+    int lineOffset = 0;
+    if (execState.tuplas.isNotEmpty) {
+      final firstLine = execState.tuplas.first.lineaID;
+      if (firstLine > 1) {
+        lineOffset = firstLine - 1;
+      }
+    }
+
+    if (execState.listo &&
+        interprete.estado.lineaActual < interprete.instrucciones.length) {
+      final tuplaActual =
+          interprete.instrucciones[interprete.estado.lineaActual];
+      final adjustedLine = tuplaActual.lineaID - lineOffset;
+      currentLineNumber = adjustedLine.clamp(1, lines.length).toInt();
+    }
+
     return Container(
-      height: h * 0.22,
+      constraints: BoxConstraints(minHeight: h * 0.15, maxHeight: h * 0.35),
       padding: EdgeInsets.all(w * 0.04),
       decoration: BoxDecoration(
         color: const Color(0xFF232323),
@@ -192,13 +578,62 @@ class _CodeExecutionViewState extends ConsumerState<CodeExecutionView>
         ],
       ),
       child: SingleChildScrollView(
-        child: Text(
-          code.isEmpty ? "// Escribe tu pseudocódigo aquí\nINICIO..." : code,
-          style: AppTextStyles.code.copyWith(
-            fontSize: w * 0.035,
-            height: 1.3,
-            color: const Color(0xFF00FFAA),
-          ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Números de línea
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: List.generate(lines.length, (index) {
+                final lineNum = index + 1;
+                final isCurrentLine = lineNum == currentLineNumber;
+                return Container(
+                  height: 20,
+                  padding: EdgeInsets.only(right: w * 0.03),
+                  color: isCurrentLine
+                      ? const Color(0xFF00C851).withOpacity(0.3)
+                      : Colors.transparent,
+                  child: Text(
+                    '$lineNum',
+                    style: AppTextStyles.code.copyWith(
+                      fontSize: w * 0.035,
+                      height: 1.3,
+                      color: isCurrentLine
+                          ? const Color(0xFF00FFAA)
+                          : const Color(0xFF666666),
+                      fontWeight: isCurrentLine
+                          ? FontWeight.bold
+                          : FontWeight.normal,
+                    ),
+                  ),
+                );
+              }),
+            ),
+            // Código
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: List.generate(lines.length, (index) {
+                  final lineNum = index + 1;
+                  final isCurrentLine = lineNum == currentLineNumber;
+                  return Container(
+                    height: 20,
+                    color: isCurrentLine
+                        ? const Color(0xFF00C851).withOpacity(0.3)
+                        : Colors.transparent,
+                    child: Text(
+                      lines[index],
+                      style: AppTextStyles.code.copyWith(
+                        fontSize: w * 0.035,
+                        height: 1.3,
+                        color: const Color(0xFF00FFAA),
+                      ),
+                    ),
+                  );
+                }),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -209,6 +644,7 @@ class _CodeExecutionViewState extends ConsumerState<CodeExecutionView>
   // ------------------------------------------------------------
   Widget _buildVariables(Map<String, dynamic> vars, double w, double h) {
     return Container(
+      width: double.infinity,
       padding: EdgeInsets.all(w * 0.04),
       decoration: BoxDecoration(
         color: AppColors.purple,
@@ -279,7 +715,8 @@ class _CodeExecutionViewState extends ConsumerState<CodeExecutionView>
   // ------------------------------------------------------------
   Widget _buildConsole(List<String> output, String? error, double w, double h) {
     return Container(
-      height: h * 0.22,
+      width: double.infinity,
+      constraints: BoxConstraints(minHeight: h * 0.15, maxHeight: h * 0.35),
       padding: EdgeInsets.all(w * 0.04),
       decoration: BoxDecoration(
         color: const Color(0xFF142A18),
@@ -303,32 +740,41 @@ class _CodeExecutionViewState extends ConsumerState<CodeExecutionView>
             ),
           ),
           SizedBox(height: h * 0.015),
-          if (error != null)
-            Container(
-              padding: EdgeInsets.all(w * 0.03),
-              margin: EdgeInsets.only(bottom: h * 0.015),
-              decoration: BoxDecoration(
-                color: AppColors.orange.withOpacity(.12),
-                border: Border.all(width: w * 0.007, color: AppColors.orange),
-              ),
-              child: Text(
-                error,
-                style: AppTextStyles.code.copyWith(
-                  color: AppColors.orange,
-                  fontSize: w * 0.032,
-                ),
-              ),
-            ),
-
           Expanded(
             child: SingleChildScrollView(
-              child: Text(
-                output.join("\n"),
-                style: AppTextStyles.code.copyWith(
-                  color: const Color(0xFF00FF8A),
-                  fontSize: w * 0.034,
-                  height: 1.2,
-                ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (error != null)
+                    Container(
+                      padding: EdgeInsets.all(w * 0.03),
+                      margin: EdgeInsets.only(bottom: h * 0.015),
+                      decoration: BoxDecoration(
+                        color: AppColors.orange.withOpacity(.12),
+                        border: Border.all(
+                          width: w * 0.007,
+                          color: AppColors.orange,
+                        ),
+                      ),
+                      child: Text(
+                        error,
+                        style: AppTextStyles.code.copyWith(
+                          color: AppColors.orange,
+                          fontSize: w * 0.032,
+                        ),
+                      ),
+                    ),
+                  Text(
+                    output.isEmpty
+                        ? 'No hay salida todavía. Ejecuta el algoritmo para ver resultados.'
+                        : output.join("\n"),
+                    style: AppTextStyles.code.copyWith(
+                      color: const Color(0xFF00FF8A),
+                      fontSize: w * 0.034,
+                      height: 1.2,
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
@@ -343,12 +789,68 @@ class _CodeExecutionViewState extends ConsumerState<CodeExecutionView>
   Widget _buildScanlines(double w, double h) {
     return AnimatedBuilder(
       animation: _crtController,
-      builder: (_, __) {
+      builder: (context, _) {
         return Opacity(
           opacity: 0.04 + (_crtController.value * 0.03),
           child: CustomPaint(size: Size(w, h), painter: _ScanlinePainter()),
         );
       },
+    );
+  }
+
+  // ------------------------------------------------------------
+  // FLECHA INDICADORA DE SCROLL
+  // ------------------------------------------------------------
+  Widget _buildScrollHint(double w, double h) {
+    return Positioned(
+      bottom: h * 0.15,
+      left: 0,
+      right: 0,
+      child: Center(
+        child: AnimatedBuilder(
+          animation: _pulseController,
+          builder: (_, __) {
+            return Transform.translate(
+              offset: Offset(0, _pulseController.value * 8),
+              child: Container(
+                padding: EdgeInsets.symmetric(
+                  horizontal: w * 0.04,
+                  vertical: w * 0.025,
+                ),
+                decoration: BoxDecoration(
+                  color: AppColors.orange,
+                  border: Border.all(width: w * 0.008, color: Colors.black),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black,
+                      offset: Offset(w * 0.008, w * 0.008),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.arrow_downward,
+                      color: Colors.white,
+                      size: w * 0.06,
+                    ),
+                    SizedBox(width: w * 0.02),
+                    Text(
+                      'VER SALIDA',
+                      style: AppTextStyles.subtitle.copyWith(
+                        color: Colors.white,
+                        fontSize: w * 0.035,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        ),
+      ),
     );
   }
 }

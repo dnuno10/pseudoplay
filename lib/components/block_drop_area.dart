@@ -124,27 +124,27 @@ class BlockDropArea extends StatelessWidget {
               const SizedBox(height: 16),
 
               // -----------------------------------------------------
-              // GRID RETRO — NUEVA FORMA VISUAL PARA SOLTAR BLOQUES
+              // LISTA VERTICAL — Scroll interno para evitar overflow
               // -----------------------------------------------------
-              Flexible(
-                child: Container(
-                  padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
-                  decoration: BoxDecoration(
-                    color: Colors.black,
-                    border: Border.all(
-                      width: 3,
-                      color: const Color(0xFF00FF8A),
-                    ),
-                  ),
-                  child: AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 250),
-                    child: blocks.isEmpty
-                        ? Center(
-                            key: const ValueKey('empty-grid'),
-                            child: _buildEmptyGrid(),
-                          )
-                        : _buildBlockList(),
-                  ),
+              Container(
+                constraints: BoxConstraints(
+                  minHeight: 120,
+                  maxHeight: blocks.isEmpty ? 120 : double.infinity,
+                ),
+                padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
+                decoration: BoxDecoration(
+                  color: Colors.black,
+                  border: Border.all(width: 3, color: const Color(0xFF00FF8A)),
+                ),
+                child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 250),
+                  child: blocks.isEmpty
+                      ? SizedBox(
+                          height: 120,
+                          key: const ValueKey('empty-grid'),
+                          child: Center(child: _buildEmptyGrid()),
+                        )
+                      : _buildBlockList(),
                 ),
               ),
             ],
@@ -189,45 +189,89 @@ class BlockDropArea extends StatelessWidget {
   }
 
   // ------------------------------------------------------------
-  // LISTA DE BLOQUES RETRO (con scroll seguro para evitar overflow)
+  // LISTA VERTICAL DE BLOQUES (crece con el contenido)
   // ------------------------------------------------------------
   Widget _buildBlockList() {
-    return ListView.separated(
+    return Column(
       key: const ValueKey('block-list'),
-      padding: const EdgeInsets.fromLTRB(0, 0, 0, 140),
-      physics: const BouncingScrollPhysics(),
-      itemCount: blocks.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 12),
-      itemBuilder: (_, i) {
-        final block = blocks[i];
-        final color = colorBuilder?.call(block) ?? Colors.deepPurple;
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (int i = 0; i < blocks.length; i++) ...[
+          _buildBlockItem(i),
+          if (i < blocks.length - 1) const SizedBox(height: 8),
+        ],
+      ],
+    );
+  }
 
-        return Dismissible(
-          key: ValueKey("$i-${block.tipo}"),
-          direction: DismissDirection.endToStart,
-          onDismissed: (_) => onRemove?.call(i),
-          background: Container(
-            alignment: Alignment.centerRight,
-            padding: const EdgeInsets.only(right: 16),
-            color: Colors.redAccent,
-            child: const Icon(Icons.delete, size: 28, color: Colors.white),
-          ),
-          child: Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: color,
-              border: Border.all(width: 3, color: Colors.black),
+  Widget _buildBlockItem(int index) {
+    final block = blocks[index];
+    final color = colorBuilder?.call(block) ?? Colors.deepPurple;
+
+    return Dismissible(
+      key: ValueKey("$index-${block.tipo}"),
+      direction: DismissDirection.endToStart,
+      onDismissed: (_) => onRemove?.call(index),
+      background: Container(
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 16),
+        decoration: BoxDecoration(
+          color: Colors.redAccent,
+          border: Border.all(width: 3, color: Colors.black),
+        ),
+        child: const Icon(Icons.delete, size: 24, color: Colors.white),
+      ),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: color,
+          border: Border.all(width: 3, color: Colors.black),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.3),
+              offset: const Offset(4, 4),
+              blurRadius: 0,
             ),
-            child: Text(
-              block.display,
-              style: AppTextStyles.code.copyWith(
-                fontSize: 15,
-                color: Colors.white,
+          ],
+        ),
+        child: Row(
+          children: [
+            // Número de bloque
+            Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                color: Colors.black.withOpacity(0.2),
+                border: Border.all(width: 2, color: Colors.black),
+                shape: BoxShape.circle,
+              ),
+              child: Center(
+                child: Text(
+                  '${index + 1}',
+                  style: AppTextStyles.code.copyWith(
+                    fontSize: 14,
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ),
             ),
-          ),
-        );
-      },
+            const SizedBox(width: 12),
+            // Texto del bloque
+            Expanded(
+              child: Text(
+                block.display,
+                style: AppTextStyles.code.copyWith(
+                  fontSize: 14,
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 

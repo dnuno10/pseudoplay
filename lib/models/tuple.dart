@@ -1,3 +1,5 @@
+import 'token.dart';
+
 class Tuple {
   final int lineaID;
   int? saltoVerdadero;
@@ -51,10 +53,12 @@ class EndTuple extends Tuple {
 
 class FunctionEntryTuple extends Tuple {
   final String nombre;
+  final List<String> parametros;
 
   FunctionEntryTuple({
     required super.lineaID,
     required this.nombre,
+    this.parametros = const [],
     int? saltoFin,
   }) : super(saltoVerdadero: saltoFin);
 }
@@ -67,6 +71,11 @@ class FunctionEndTuple extends Tuple {
 
 class FunctionCallTuple extends Tuple {
   final String nombre;
+  final List<List<Token>> argumentos;
 
-  FunctionCallTuple({required super.lineaID, required this.nombre});
+  FunctionCallTuple({
+    required super.lineaID,
+    required this.nombre,
+    this.argumentos = const [],
+  });
 }

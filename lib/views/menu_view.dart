@@ -1,19 +1,30 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../l10n/app_localizations.dart';
+import '../models/user_preferences_state.dart';
+import '../provider/user_preferences_provider.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_text_styles.dart';
+import '../utils/context_extensions.dart';
+import '../utils/time_formatter.dart';
+import '../widgets/name_input_dialog.dart';
 
-class MenuView extends StatefulWidget {
+class MenuView extends ConsumerStatefulWidget {
   const MenuView({super.key});
 
   @override
-  State<MenuView> createState() => _MenuViewState();
+  ConsumerState<MenuView> createState() => _MenuViewState();
 }
 
-class _MenuViewState extends State<MenuView> with TickerProviderStateMixin {
+class _MenuViewState extends ConsumerState<MenuView>
+    with TickerProviderStateMixin {
   late AnimationController _c1;
   late AnimationController _c2;
+  Timer? _card1Timer;
+  Timer? _card2Timer;
 
   @override
   void initState() {
@@ -28,12 +39,18 @@ class _MenuViewState extends State<MenuView> with TickerProviderStateMixin {
       duration: const Duration(milliseconds: 450),
     );
 
-    Future.delayed(const Duration(milliseconds: 120), () => _c1.forward());
-    Future.delayed(const Duration(milliseconds: 260), () => _c2.forward());
+    _card1Timer = Timer(const Duration(milliseconds: 120), () {
+      if (mounted) _c1.forward(from: 0);
+    });
+    _card2Timer = Timer(const Duration(milliseconds: 260), () {
+      if (mounted) _c2.forward(from: 0);
+    });
   }
 
   @override
   void dispose() {
+    _card1Timer?.cancel();
+    _card2Timer?.cancel();
     _c1.dispose();
     _c2.dispose();
     super.dispose();
@@ -41,6 +58,8 @@ class _MenuViewState extends State<MenuView> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
+    final prefs = ref.watch(userPreferencesProvider);
+    final loc = context.loc;
     final size = MediaQuery.of(context).size;
     final w = size.width;
     final h = size.height;
@@ -61,19 +80,28 @@ class _MenuViewState extends State<MenuView> with TickerProviderStateMixin {
 
             Padding(
               padding: EdgeInsets.all(padding),
-              child: Column(
-                children: [
-                  _buildHeader(w),
-                  SizedBox(height: spacing * 1.2),
-                  _buildUserBar(w, h),
-                  SizedBox(height: spacing * 1.5),
+              child: SingleChildScrollView(
+                child: Column(
+                  children: [
+                    _buildHeader(w),
+                    SizedBox(height: spacing * 1.2),
+                    _buildUserBar(
+                      w,
+                      h,
+                      ref,
+                      prefs.userName ?? loc.nameDialogPlaceholder,
+                      loc,
+                    ),
+                    SizedBox(height: spacing * 1.5),
 
-                  _buildCardsRow(context, w, h, cardHeight),
+                    _buildCardsRow(context, w, h, cardHeight, loc),
+                    SizedBox(height: spacing * 1.2),
+                    _buildFlashcardCard(context, w, h, loc),
+                    SizedBox(height: spacing * 1.5),
 
-                  const Spacer(),
-
-                  _buildStats(w, h),
-                ],
+                    _buildStats(w, h, prefs, loc),
+                  ],
+                ),
               ),
             ),
 
@@ -90,6 +118,86 @@ class _MenuViewState extends State<MenuView> with TickerProviderStateMixin {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildFlashcardCard(
+    BuildContext context,
+    double w,
+    double h,
+    AppLocalizations loc,
+  ) {
+    final height = h * 0.26;
+    return Container(
+      width: double.infinity,
+      height: height,
+      padding: EdgeInsets.all(w * 0.045),
+      decoration: BoxDecoration(
+        color: const Color(0xFF0C1E2C),
+        border: Border.all(width: w * 0.008, color: Colors.black),
+        boxShadow: [
+          const BoxShadow(
+            color: Color.fromRGBO(0, 0, 0, 0.5),
+            offset: Offset(6, 6),
+            blurRadius: 0,
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            loc.menuFlashcardsTitle,
+            style: AppTextStyles.code.copyWith(
+              fontSize: w * 0.05,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ),
+          SizedBox(height: h * 0.012),
+          Expanded(
+            child: Text(
+              loc.menuFlashcardsDescription,
+              style: AppTextStyles.code.copyWith(
+                fontSize: w * 0.037,
+                color: Colors.white70,
+                height: 1.3,
+              ),
+            ),
+          ),
+          Align(
+            alignment: Alignment.bottomRight,
+            child: GestureDetector(
+              onTap: () => context.go('/flashcards'),
+              child: Container(
+                padding: EdgeInsets.symmetric(
+                  horizontal: w * 0.08,
+                  vertical: h * 0.013,
+                ),
+                decoration: BoxDecoration(
+                  color: AppColors.lightPurple,
+                  border: Border.all(width: w * 0.008, color: Colors.black),
+                  boxShadow: [
+                    const BoxShadow(
+                      color: Color.fromRGBO(0, 0, 0, 0.5),
+                      offset: Offset(4, 4),
+                      blurRadius: 0,
+                    ),
+                  ],
+                ),
+                child: Text(
+                  loc.menuFlashcardsCTA.toUpperCase(),
+                  style: AppTextStyles.code.copyWith(
+                    fontSize: w * 0.045,
+                    color: Colors.black,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -113,16 +221,22 @@ class _MenuViewState extends State<MenuView> with TickerProviderStateMixin {
   // ------------------------------------------------------------
   // USER BAR — overflow FIXED
   // ------------------------------------------------------------
-  Widget _buildUserBar(double w, double h) {
+  Widget _buildUserBar(
+    double w,
+    double h,
+    WidgetRef ref,
+    String userName,
+    AppLocalizations loc,
+  ) {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: w * 0.04, vertical: h * 0.014),
       decoration: BoxDecoration(
         color: AppColors.purple,
         border: Border.all(width: w * 0.008, color: Colors.black),
         boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.5),
-            offset: const Offset(6, 6),
+          const BoxShadow(
+            color: Color.fromRGBO(0, 0, 0, 0.5),
+            offset: Offset(6, 6),
             blurRadius: 0,
           ),
         ],
@@ -136,14 +250,14 @@ class _MenuViewState extends State<MenuView> with TickerProviderStateMixin {
               child: Row(
                 children: [
                   Text(
-                    'USR> ',
+                    '${loc.menuUserPrefix} ',
                     style: AppTextStyles.code.copyWith(
                       fontSize: w * 0.048,
                       color: Colors.white,
                     ),
                   ),
                   Text(
-                    'Axel Daniel Nuño',
+                    userName,
                     style: AppTextStyles.code.copyWith(
                       fontSize: w * 0.048,
                       fontWeight: FontWeight.bold,
@@ -157,21 +271,30 @@ class _MenuViewState extends State<MenuView> with TickerProviderStateMixin {
 
           SizedBox(width: w * 0.03),
 
-          Container(
-            padding: EdgeInsets.symmetric(
-              horizontal: w * 0.04,
-              vertical: h * 0.009,
-            ),
-            decoration: BoxDecoration(
-              color: AppColors.lightPurple,
-              border: Border.all(width: w * 0.006, color: Colors.black),
-            ),
-            child: Text(
-              'EDITAR',
-              style: AppTextStyles.code.copyWith(
-                fontSize: w * 0.04,
-                color: Colors.black,
-                fontWeight: FontWeight.bold,
+          GestureDetector(
+            onTap: () async {
+              final result = await NameInputDialog.show(context);
+              if (result == null || result.trim().isEmpty) return;
+              await ref
+                  .read(userPreferencesProvider.notifier)
+                  .setUserName(result.trim());
+            },
+            child: Container(
+              padding: EdgeInsets.symmetric(
+                horizontal: w * 0.04,
+                vertical: h * 0.009,
+              ),
+              decoration: BoxDecoration(
+                color: AppColors.lightPurple,
+                border: Border.all(width: w * 0.006, color: Colors.black),
+              ),
+              child: Text(
+                loc.menuEditButton.toUpperCase(),
+                style: AppTextStyles.code.copyWith(
+                  fontSize: w * 0.04,
+                  color: Colors.black,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
           ),
@@ -188,6 +311,7 @@ class _MenuViewState extends State<MenuView> with TickerProviderStateMixin {
     double w,
     double h,
     double cardHeight,
+    AppLocalizations loc,
   ) {
     final cardWidth = (w - (w * 0.06 * 2) - w * 0.04) / 2;
 
@@ -208,11 +332,10 @@ class _MenuViewState extends State<MenuView> with TickerProviderStateMixin {
                     h: h,
                     width: cardWidth,
                     height: cardHeight,
-                    title: "Ejecutar Pseudocódigo",
-                    subtitle:
-                        "Escribe y ejecuta código paso a paso sin complicaciones.",
+                    title: loc.menuExecuteTitle,
+                    subtitle: loc.menuExecuteSubtitle,
                     bg: AppColors.orange,
-                    route: "/editor",
+                    route: '/editor',
                   ),
                 ),
               );
@@ -235,11 +358,10 @@ class _MenuViewState extends State<MenuView> with TickerProviderStateMixin {
                     h: h,
                     width: cardWidth,
                     height: cardHeight,
-                    title: "Modo por bloques",
-                    subtitle:
-                        "Construye algoritmos arrastrando bloques con estilo retro.",
+                    title: loc.menuBlocksTitle,
+                    subtitle: loc.menuBlocksSubtitle,
                     bg: AppColors.purple,
-                    route: "/blocks",
+                    route: '/blocks',
                   ),
                 ),
               );
@@ -264,6 +386,7 @@ class _MenuViewState extends State<MenuView> with TickerProviderStateMixin {
     required Color bg,
     required String route,
   }) {
+    final loc = context.loc;
     return Container(
       width: width,
       height: height,
@@ -272,9 +395,9 @@ class _MenuViewState extends State<MenuView> with TickerProviderStateMixin {
         color: bg,
         border: Border.all(width: w * 0.008, color: Colors.black),
         boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.5),
-            offset: const Offset(6, 6),
+          const BoxShadow(
+            color: Color.fromRGBO(0, 0, 0, 0.5),
+            offset: Offset(6, 6),
             blurRadius: 0,
           ),
         ],
@@ -305,7 +428,7 @@ class _MenuViewState extends State<MenuView> with TickerProviderStateMixin {
               style: AppTextStyles.code.copyWith(
                 fontSize: w * 0.034,
                 height: 1.25,
-                color: Colors.white.withOpacity(0.9),
+                color: Color.fromRGBO(255, 255, 255, 0.9),
               ),
             ),
           ),
@@ -326,15 +449,15 @@ class _MenuViewState extends State<MenuView> with TickerProviderStateMixin {
                   color: Colors.white,
                   border: Border.all(width: w * 0.008, color: Colors.black),
                   boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.5),
-                      offset: const Offset(4, 4),
+                    const BoxShadow(
+                      color: Color.fromRGBO(0, 0, 0, 0.5),
+                      offset: Offset(4, 4),
                       blurRadius: 0,
                     ),
                   ],
                 ),
                 child: Text(
-                  'JUGAR',
+                  loc.menuPlayButton.toUpperCase(),
                   style: AppTextStyles.code.copyWith(
                     fontSize: w * 0.042,
                     color: Colors.black,
@@ -352,12 +475,23 @@ class _MenuViewState extends State<MenuView> with TickerProviderStateMixin {
   // ------------------------------------------------------------
   // STATS
   // ------------------------------------------------------------
-  Widget _buildStats(double w, double h) {
+  Widget _buildStats(
+    double w,
+    double h,
+    UserPreferencesState prefs,
+    AppLocalizations loc,
+  ) {
+    final totalTimeText = TimeFormatter.formatDuration(
+      prefs.totalPlaytime,
+      loc,
+    );
+    final algoText = loc.statsAlgorithmsValue(prefs.algorithmsExecuted);
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _stat("HAS JUGADO", "4 h  2 m  50 s", w, h),
+        _stat(loc.menuPlaytimeLabel.toUpperCase(), totalTimeText, w, h),
         SizedBox(height: h * 0.014),
-        _stat("HAS EJECUTADO", "40 algoritmos", w, h),
+        _stat(loc.menuAlgorithmsLabel.toUpperCase(), algoText, w, h),
       ],
     );
   }
@@ -370,30 +504,40 @@ class _MenuViewState extends State<MenuView> with TickerProviderStateMixin {
         color: const Color(0xFF142A18),
         border: Border.all(width: w * 0.008, color: Colors.black),
         boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.5),
-            offset: const Offset(6, 6),
+          const BoxShadow(
+            color: Color.fromRGBO(0, 0, 0, 0.5),
+            offset: Offset(6, 6),
             blurRadius: 0,
           ),
         ],
       ),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            label,
-            style: AppTextStyles.code.copyWith(
-              fontSize: w * 0.045,
-              fontWeight: FontWeight.bold,
-              color: const Color(0xFF00FF8A),
+          Expanded(
+            child: Text(
+              label,
+              overflow: TextOverflow.ellipsis,
+              style: AppTextStyles.code.copyWith(
+                fontSize: w * 0.042,
+                fontWeight: FontWeight.bold,
+                color: const Color(0xFF00FF8A),
+              ),
             ),
           ),
-          Text(
-            value,
-            style: AppTextStyles.code.copyWith(
-              fontSize: w * 0.045,
-              fontWeight: FontWeight.bold,
-              color: const Color(0xFF00FF8A),
+          SizedBox(width: w * 0.03),
+          Expanded(
+            child: Align(
+              alignment: Alignment.centerRight,
+              child: Text(
+                value,
+                textAlign: TextAlign.right,
+                overflow: TextOverflow.ellipsis,
+                style: AppTextStyles.code.copyWith(
+                  fontSize: w * 0.042,
+                  fontWeight: FontWeight.bold,
+                  color: const Color(0xFF00FF8A),
+                ),
+              ),
             ),
           ),
         ],
@@ -409,7 +553,7 @@ class _RetroTexturePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = Colors.black.withOpacity(0.02)
+      ..color = const Color.fromRGBO(0, 0, 0, 0.02)
       ..strokeWidth = 1;
 
     for (double y = 0; y < size.height; y += 3) {
@@ -432,7 +576,7 @@ class _ScanlinePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = Colors.black.withOpacity(0.03)
+      ..color = const Color.fromRGBO(0, 0, 0, 0.03)
       ..strokeWidth = 2;
 
     for (double y = 0; y < size.height; y += 4) {

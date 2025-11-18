@@ -23,17 +23,28 @@ class LexerManager {
     "Llamar",
     "Fin",
     "FinPrograma",
-    // Uppercase variants from mockup
+    // Uppercase variants
     "INICIO",
     "VARIABLE",
     "LEER",
     "ESCRIBIR",
     "FIN",
+    // Lowercase variants
+    "inicio-programa",
+    "leer",
+    "escribir",
+    "fin-programa",
+    "mientras",
+    "fin-mientras",
   ];
 
   final List<String> comparadores = ["==", ">=", "<=", "!=", ">", "<"];
 
   final List<String> operadores = ["+", "-", "*", "/"];
+
+  late final Set<String> _palabrasReservadasNormalized = {
+    for (final palabra in palabrasReservadas) palabra.toUpperCase(),
+  };
 
   /// ------------------------------------------
   /// MÉTODO PRINCIPAL → ANALIZAR CÓDIGO
@@ -55,6 +66,54 @@ class LexerManager {
 
     for (int i = 0; i < codigo.length; i++) {
       String c = codigo[i];
+
+      // Manejo de comentarios de línea (//)
+      if (c == '/' && i + 1 < codigo.length && codigo[i + 1] == '/') {
+        agregarTokenDesdeBuffer();
+        // Saltar todo hasta el fin de línea
+        while (i < codigo.length && codigo[i] != '\n') {
+          i++;
+          columna++;
+        }
+        // No incrementar i aquí, el salto de línea se manejará en la siguiente iteración
+        i--; // Retroceder uno para que el \n se procese normalmente
+        continue;
+      }
+
+      // Manejo de cadenas de texto entre comillas
+      if (c == '"') {
+        agregarTokenDesdeBuffer();
+        String cadena = '"';
+        int inicio = columna;
+        i++; // Saltar la comilla inicial
+        columna++;
+
+        while (i < codigo.length && codigo[i] != '"') {
+          if (codigo[i] == '\n') {
+            linea++;
+            columna = 1;
+          } else {
+            columna++;
+          }
+          cadena += codigo[i];
+          i++;
+        }
+
+        if (i < codigo.length) {
+          cadena += '"'; // Agregar comilla final
+          columna++;
+        }
+
+        tokens.add(
+          Token(
+            lexema: cadena,
+            tipo: TipoToken.cadena,
+            linea: linea,
+            columna: inicio,
+          ),
+        );
+        continue;
+      }
 
       // Saltos de línea
       if (c == "\n") {
@@ -99,12 +158,16 @@ class LexerManager {
       }
 
       // Caracteres especiales simples
-      if (["(", ")", ",", "="].contains(c)) {
+      if (["(", ")", "[", "]", "{", "}", ",", "="].contains(c)) {
         agregarTokenDesdeBuffer();
 
         TipoToken tipo = TipoToken.desconocido;
-        if (c == "(") tipo = TipoToken.parentesisApertura;
-        if (c == ")") tipo = TipoToken.parentesisCierre;
+        if (c == "(" || c == "[" || c == "{") {
+          tipo = TipoToken.parentesisApertura;
+        }
+        if (c == ")" || c == "]" || c == "}") {
+          tipo = TipoToken.parentesisCierre;
+        }
         if (c == ",") tipo = TipoToken.coma;
         if (c == "=") tipo = TipoToken.asignacion;
 
@@ -145,7 +208,7 @@ class LexerManager {
   /// CLASIFICAR TOKEN (versión Dart del Java)
   /// ------------------------------------------
   TipoToken _clasificar(String lexema) {
-    if (palabrasReservadas.contains(lexema)) {
+    if (_palabrasReservadasNormalized.contains(lexema.toUpperCase())) {
       return TipoToken.palabraReservada;
     }
 

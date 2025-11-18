@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../theme/app_text_styles.dart';
+import '../widgets/retro_snackbar.dart';
 
 class BlockDialogs {
   static Future<Map<String, dynamic>?> pedirVariable(
@@ -58,11 +59,34 @@ class BlockDialogs {
       barrierColor: Colors.black87,
       builder: (_) => _RetroDialog(
         title: 'ASIGNACIÓN',
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (declaredVars.isNotEmpty) ...[
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (declaredVars.isNotEmpty) ...[
+                const Text(
+                  'Variables disponibles:',
+                  style: TextStyle(
+                    fontFamily: 'IBMPlexMono',
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                _VariableChips(
+                  variables: declaredVars,
+                  onSelect: (v) => variable.text = v,
+                ),
+                const SizedBox(height: 12),
+              ],
+              _RetroTextField(
+                controller: variable,
+                label: 'Variable',
+                hint: 'Ej: suma, contador',
+              ),
+              const SizedBox(height: 12),
               const Text(
                 'Variables disponibles:',
                 style: TextStyle(
@@ -73,55 +97,34 @@ class BlockDialogs {
                 ),
               ),
               const SizedBox(height: 8),
-              _VariableChips(
-                variables: declaredVars,
-                onSelect: (v) => variable.text = v,
-              ),
+              if (declaredVars.isNotEmpty)
+                _VariableChips(
+                  variables: declaredVars,
+                  onSelect: (v) {
+                    if (expresion.text.isEmpty) {
+                      expresion.text = v;
+                    } else {
+                      expresion.text += ' $v';
+                    }
+                  },
+                ),
               const SizedBox(height: 12),
+              _RetroTextField(
+                controller: expresion,
+                label: 'Expresión',
+                hint: 'Ej: num1 + num2, "texto"',
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Usa variables declaradas, números o texto entre ""',
+                style: TextStyle(
+                  fontFamily: 'IBMPlexMono',
+                  fontSize: 11,
+                  color: Colors.black54,
+                ),
+              ),
             ],
-            _RetroTextField(
-              controller: variable,
-              label: 'Variable',
-              hint: 'Ej: suma, contador',
-            ),
-            const SizedBox(height: 12),
-            const Text(
-              'Variables disponibles:',
-              style: TextStyle(
-                fontFamily: 'IBMPlexMono',
-                fontSize: 13,
-                fontWeight: FontWeight.bold,
-                color: Colors.black87,
-              ),
-            ),
-            const SizedBox(height: 8),
-            if (declaredVars.isNotEmpty)
-              _VariableChips(
-                variables: declaredVars,
-                onSelect: (v) {
-                  if (expresion.text.isEmpty) {
-                    expresion.text = v;
-                  } else {
-                    expresion.text += ' $v';
-                  }
-                },
-              ),
-            const SizedBox(height: 12),
-            _RetroTextField(
-              controller: expresion,
-              label: 'Expresión',
-              hint: 'Ej: num1 + num2, "texto"',
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Usa variables declaradas, números o texto entre ""',
-              style: TextStyle(
-                fontFamily: 'IBMPlexMono',
-                fontSize: 11,
-                color: Colors.black54,
-              ),
-            ),
-          ],
+          ),
         ),
         onCancel: () => Navigator.pop(context),
         onConfirm: () {
@@ -167,33 +170,35 @@ class BlockDialogs {
       barrierColor: Colors.black87,
       builder: (_) => _RetroDialog(
         title: 'LEER',
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (declaredVars.isNotEmpty) ...[
-              const Text(
-                'Variables disponibles:',
-                style: TextStyle(
-                  fontFamily: 'IBMPlexMono',
-                  fontSize: 13,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (declaredVars.isNotEmpty) ...[
+                const Text(
+                  'Variables disponibles:',
+                  style: TextStyle(
+                    fontFamily: 'IBMPlexMono',
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
                 ),
+                const SizedBox(height: 8),
+                _VariableChips(
+                  variables: declaredVars,
+                  onSelect: (v) => variable.text = v,
+                ),
+                const SizedBox(height: 12),
+              ],
+              _RetroTextField(
+                controller: variable,
+                label: 'Variable',
+                hint: 'Ej: num1, nombre',
               ),
-              const SizedBox(height: 8),
-              _VariableChips(
-                variables: declaredVars,
-                onSelect: (v) => variable.text = v,
-              ),
-              const SizedBox(height: 12),
             ],
-            _RetroTextField(
-              controller: variable,
-              label: 'Variable',
-              hint: 'Ej: num1, nombre',
-            ),
-          ],
+          ),
         ),
         onCancel: () => Navigator.pop(context),
         onConfirm: () {
@@ -225,42 +230,44 @@ class BlockDialogs {
       barrierColor: Colors.black87,
       builder: (_) => _RetroDialog(
         title: 'ESCRIBIR',
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (declaredVars.isNotEmpty) ...[
-              const Text(
-                'Variables disponibles:',
-                style: TextStyle(
-                  fontFamily: 'IBMPlexMono',
-                  fontSize: 13,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (declaredVars.isNotEmpty) ...[
+                const Text(
+                  'Variables disponibles:',
+                  style: TextStyle(
+                    fontFamily: 'IBMPlexMono',
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
                 ),
+                const SizedBox(height: 8),
+                _VariableChips(
+                  variables: declaredVars,
+                  onSelect: (v) => valor.text = v,
+                ),
+                const SizedBox(height: 12),
+              ],
+              _RetroTextField(
+                controller: valor,
+                label: 'Valor o variable',
+                hint: 'Ej: "Hola", suma',
               ),
               const SizedBox(height: 8),
-              _VariableChips(
-                variables: declaredVars,
-                onSelect: (v) => valor.text = v,
+              const Text(
+                'Usa variables declaradas o texto entre ""',
+                style: TextStyle(
+                  fontFamily: 'IBMPlexMono',
+                  fontSize: 11,
+                  color: Colors.black54,
+                ),
               ),
-              const SizedBox(height: 12),
             ],
-            _RetroTextField(
-              controller: valor,
-              label: 'Valor o variable',
-              hint: 'Ej: "Hola", suma',
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Usa variables declaradas o texto entre ""',
-              style: TextStyle(
-                fontFamily: 'IBMPlexMono',
-                fontSize: 11,
-                color: Colors.black54,
-              ),
-            ),
-          ],
+          ),
         ),
         onCancel: () => Navigator.pop(context),
         onConfirm: () {
@@ -293,48 +300,50 @@ class BlockDialogs {
       barrierColor: Colors.black87,
       builder: (_) => _RetroDialog(
         title: 'CONDICIÓN',
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (declaredVars.isNotEmpty) ...[
-              const Text(
-                'Variables disponibles:',
-                style: TextStyle(
-                  fontFamily: 'IBMPlexMono',
-                  fontSize: 13,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (declaredVars.isNotEmpty) ...[
+                const Text(
+                  'Variables disponibles:',
+                  style: TextStyle(
+                    fontFamily: 'IBMPlexMono',
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
                 ),
+                const SizedBox(height: 8),
+                _VariableChips(
+                  variables: declaredVars,
+                  onSelect: (v) {
+                    if (txt.text.isEmpty) {
+                      txt.text = v;
+                    } else {
+                      txt.text += ' $v';
+                    }
+                  },
+                ),
+                const SizedBox(height: 12),
+              ],
+              _RetroTextField(
+                controller: txt,
+                label: 'Condición',
+                hint: 'Ej: num > 5, edad == 18',
               ),
               const SizedBox(height: 8),
-              _VariableChips(
-                variables: declaredVars,
-                onSelect: (v) {
-                  if (txt.text.isEmpty) {
-                    txt.text = v;
-                  } else {
-                    txt.text += ' $v';
-                  }
-                },
+              const Text(
+                'Operadores: >, <, ==, !=, >=, <=',
+                style: TextStyle(
+                  fontFamily: 'IBMPlexMono',
+                  fontSize: 11,
+                  color: Colors.black54,
+                ),
               ),
-              const SizedBox(height: 12),
             ],
-            _RetroTextField(
-              controller: txt,
-              label: 'Condición',
-              hint: 'Ej: num > 5, edad == 18',
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Operadores: >, <, ==, !=, >=, <=',
-              style: TextStyle(
-                fontFamily: 'IBMPlexMono',
-                fontSize: 11,
-                color: Colors.black54,
-              ),
-            ),
-          ],
+          ),
         ),
         onCancel: () => Navigator.pop(context),
         onConfirm: () {
@@ -484,12 +493,12 @@ class BlockDialogs {
   }
 
   static void _showError(BuildContext context, String msg) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(msg, style: AppTextStyles.code),
-        backgroundColor: const Color(0xFFFF4D00),
-        duration: const Duration(seconds: 2),
-      ),
+    RetroSnackBar.show(
+      context,
+      message: msg,
+      tone: RetroSnackTone.error,
+      icon: Icons.warning_amber_rounded,
+      duration: const Duration(seconds: 3),
     );
   }
 }
@@ -518,7 +527,7 @@ class _RetroDialog extends StatelessWidget {
     return Dialog(
       backgroundColor: Colors.transparent,
       child: Container(
-        constraints: BoxConstraints(maxWidth: w * 0.85, maxHeight: h * 0.6),
+        constraints: BoxConstraints(maxWidth: w * 0.85, maxHeight: h * 0.7),
         decoration: BoxDecoration(
           color: const Color(0xFFF4EEDB),
           border: Border.all(color: Colors.black, width: 4),
