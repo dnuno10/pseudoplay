@@ -74,7 +74,7 @@ class SyntaxCoach {
     final openBlocks = _countOpenBlocks(lines);
     if (openBlocks > 0) {
       hints.add(
-        'Tienes ${openBlocks.toString()} bloque(s) sin cerrar (usa FinSi / FinRepite / FinFuncion).',
+        'Tienes ${openBlocks.toString()} bloque(s) sin cerrar (usa FinSi / FinMientras / FinFuncion).',
       );
     }
 

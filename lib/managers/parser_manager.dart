@@ -81,12 +81,18 @@ class ParserManager {
         continue;
       }
 
-      if (_esLexema("Repite") || _esLexema("mientras")) {
+      if (_esLexema("Repite") ||
+          _esLexema("mientras") ||
+          _esLexema("Mientras") ||
+          _esLexema("MIENTRAS")) {
         instrucciones.add(_parseRepite());
         continue;
       }
 
-      if (_esLexema("FinRepite") || _esLexema("fin-mientras")) {
+      if (_esLexema("FinRepite") ||
+          _esLexema("fin-mientras") ||
+          _esLexema("FinMientras") ||
+          _esLexema("FINMIENTRAS")) {
         instrucciones.add(_parseFinRepite());
         continue;
       }
@@ -266,12 +272,78 @@ class ParserManager {
   }
 
   Tuple _parseRepite() {
-    _consumirLexema("Repite");
+    // Acepta Repite, mientras, Mientras, MIENTRAS
+    Token inicio;
+    bool esMientras = false;
+
+    if (_esLexema("Repite")) {
+      inicio = _consumirLexema("Repite");
+    } else if (_esLexema("mientras")) {
+      inicio = _consumirLexema("mientras");
+      esMientras = true;
+    } else if (_esLexema("Mientras")) {
+      inicio = _consumirLexema("Mientras");
+      esMientras = true;
+    } else if (_esLexema("MIENTRAS")) {
+      inicio = _consumirLexema("MIENTRAS");
+      esMientras = true;
+    } else {
+      throw SyntaxException("Se esperaba MIENTRAS o REPITE", _lineaActual);
+    }
+
+    // Si es MIENTRAS, capturar la condición hasta HACER
+    if (esMientras) {
+      final condicion = _capturarHastaLexema("HACER");
+
+      if (_esLexema("HACER") || _esLexema("hacer") || _esLexema("Hacer")) {
+        _consumirLexema(_actual.lexema);
+      }
+
+      // Buscar el comparador en la condición
+      final comparadorIdx = condicion.indexWhere(
+        (token) => token.tipo == TipoToken.comparador,
+      );
+
+      if (comparadorIdx == -1) {
+        throw SyntaxException(
+          "La condición de 'MIENTRAS' requiere un comparador",
+          inicio.linea,
+        );
+      }
+
+      final izquierda = condicion.sublist(0, comparadorIdx);
+      final derecha = condicion.sublist(comparadorIdx + 1);
+
+      if (izquierda.isEmpty || derecha.isEmpty) {
+        throw SyntaxException(
+          "La condición de 'MIENTRAS' debe tener dos expresiones",
+          inicio.linea,
+        );
+      }
+
+      // Usar lineaID negativo especial para marcar como MIENTRAS
+      return CompareTuple(
+        lineaID: -5000, // Marca especial para MIENTRAS
+        izquierda: List<Token>.from(izquierda),
+        operador: condicion[comparadorIdx].lexema,
+        derecha: List<Token>.from(derecha),
+      );
+    }
+
     return Tuple(lineaID: -3000);
   }
 
   Tuple _parseFinRepite() {
-    _consumirLexema("FinRepite");
+    // Acepta FinRepite, fin-mientras, FinMientras, FINMIENTRAS
+    if (_esLexema("FinRepite")) {
+      _consumirLexema("FinRepite");
+    } else if (_esLexema("fin-mientras")) {
+      _consumirLexema("fin-mientras");
+    } else if (_esLexema("FinMientras")) {
+      _consumirLexema("FinMientras");
+    } else if (_esLexema("FINMIENTRAS")) {
+      _consumirLexema("FINMIENTRAS");
+    }
     return Tuple(lineaID: -4000);
   }
 
@@ -396,6 +468,7 @@ class ParserManager {
           break;
         case "FINREPITE":
         case "FIN-MIENTRAS":
+        case "FINMIENTRAS":
           _cerrarBloque(pila, _BloqueTipo.repite, token);
           break;
         case "FUNCION":

@@ -33,47 +33,67 @@ class BlocksManager extends Notifier<List<BlockModel>> {
   /// ----------------------------------------
   String convertirAPseudocodigo() {
     final buffer = StringBuffer();
+    int nivelIndentacion = 1; // Empieza con nivel 1 (dentro de INICIO)
+
+    // Añadir INICIO
+    buffer.writeln("INICIO");
 
     for (final b in state) {
+      final indentacion = "  " * nivelIndentacion;
+
       switch (b.tipo) {
         case "variable":
-          buffer.writeln("${b.data!['nombre']} = ${b.data!['valor']}");
+          buffer.writeln(
+            "$indentacion${b.data!['nombre']} = ${b.data!['valor']}",
+          );
           break;
 
         case "asignacion":
-          buffer.writeln("${b.data!['var']} = ${b.data!['expr']}");
+          buffer.writeln("$indentacion${b.data!['var']} = ${b.data!['expr']}");
           break;
 
         case "leer":
-          buffer.writeln("Leer ${b.data!['var']}");
+          buffer.writeln("${indentacion}LEER ${b.data!['var']}");
           break;
 
         case "escribir":
-          buffer.writeln("Escribir ${b.data!['valor']}");
+          buffer.writeln("${indentacion}ESCRIBIR ${b.data!['valor']}");
           break;
 
         case "si":
-          buffer.writeln("Si ${b.data!['condicion']} Entonces");
+          buffer.writeln("${indentacion}SI ${b.data!['condicion']} ENTONCES");
+          nivelIndentacion++;
           break;
 
         case "sino":
-          buffer.writeln("Sino");
+          nivelIndentacion--;
+          buffer.writeln("${indentacion}SINO");
+          nivelIndentacion++;
           break;
 
         case "finsi":
-          buffer.writeln("FinSi");
+          nivelIndentacion--;
+          buffer.writeln("${indentacion}FINSI");
           break;
 
         case "repite":
-          buffer.writeln("Repite");
+          buffer.writeln("${indentacion}REPITE");
+          nivelIndentacion++;
           break;
 
         case "finrepite":
-          buffer.writeln("Repite ${b.data!['veces'] ?? ''}".trim());
-          buffer.writeln("FinRepite");
+          nivelIndentacion--;
+          final veces = b.data!['veces'] ?? '';
+          if (veces.toString().isNotEmpty) {
+            buffer.writeln("${indentacion}HASTA ${veces}");
+          }
+          buffer.writeln("${indentacion}FINREPITE");
           break;
       }
     }
+
+    // Añadir FIN
+    buffer.writeln("FIN");
 
     return buffer.toString();
   }

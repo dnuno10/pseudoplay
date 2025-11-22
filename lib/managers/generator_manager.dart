@@ -46,6 +46,21 @@ class GeneratorManager {
         ejecutables.add(inst);
       }
       // -------------------------------
+      // MIENTRAS (lineaID == -5000) - VERIFICAR PRIMERO
+      // -------------------------------
+      else if (inst is CompareTuple && inst.lineaID == -5000) {
+        // Es un MIENTRAS
+        pilaRepite.add(ejecutables.length);
+        ejecutables.add(
+          CompareTuple(
+            lineaID: inst.lineaID,
+            izquierda: inst.izquierda,
+            operador: inst.operador,
+            derecha: inst.derecha,
+          ),
+        );
+      }
+      // -------------------------------
       // SI (COMPARACIÓN)
       // -------------------------------
       else if (inst is CompareTuple) {
@@ -65,8 +80,10 @@ class GeneratorManager {
       // -------------------------------
       else if (inst.lineaID == -1000) {
         int posIf = pilaSi.removeLast();
+        // El SI debe saltar aquí (al SINO) cuando la condición es falsa
         ejecutables[posIf].saltoFalso = ejecutables.length + 1;
 
+        // Crear tupla SINO - cuando SI es verdadero, debe saltar al FinSi
         ejecutables.add(Tuple(lineaID: inst.lineaID));
 
         pilaSi.add(ejecutables.length - 1);
@@ -76,7 +93,15 @@ class GeneratorManager {
       // -------------------------------
       else if (inst.lineaID == -2000) {
         int posCond = pilaSi.removeLast();
-        ejecutables[posCond].saltoFalso = ejecutables.length;
+        // Si hay SINO, configurar su saltoVerdadero para saltar al FinSi
+        // Si NO hay SINO, configurar saltoFalso del SI al FinSi
+        if (ejecutables[posCond].lineaID == -1000) {
+          // Es un SINO - configurar saltoVerdadero
+          ejecutables[posCond].saltoVerdadero = ejecutables.length;
+        } else {
+          // Es un SI sin SINO - configurar saltoFalso
+          ejecutables[posCond].saltoFalso = ejecutables.length;
+        }
       }
       // -------------------------------
       // REPITE
@@ -86,10 +111,22 @@ class GeneratorManager {
         ejecutables.add(inst);
       }
       // -------------------------------
-      // FINREPITE
+      // FINREPITE / FINMIENTRAS
       // -------------------------------
       else if (inst.lineaID == -4000) {
+        if (pilaRepite.isEmpty) {
+          throw Exception(
+            'Error: FinMientras/FinRepite sin MIENTRAS/REPITE correspondiente',
+          );
+        }
         int inicio = pilaRepite.removeLast();
+        // La condición del MIENTRAS (o inicio del REPITE) está en 'inicio'
+        // El salto falso de la condición apunta después de este FinMientras
+        if (ejecutables[inicio] is CompareTuple &&
+            ejecutables[inicio].lineaID == -5000) {
+          // Es un MIENTRAS
+          ejecutables[inicio].saltoFalso = ejecutables.length + 1;
+        }
         ejecutables.add(Tuple(lineaID: inst.lineaID, saltoVerdadero: inicio));
       }
       // -------------------------------

@@ -104,7 +104,11 @@ class ExecutionController extends Notifier<ExecutionState> {
       // 4. Generar tuplas finales
       final tuplas = generador.generar(estructura);
 
-      // 5. Cargar al intérprete
+      // 5. Limpiar tabla de símbolos antes de cargar
+      interprete.tablaSimbolos.limpiar();
+      interprete.estado.reset();
+
+      // 6. Cargar al intérprete
       interprete.cargarPrograma(tuplas);
 
       if (tuplas.isNotEmpty) {

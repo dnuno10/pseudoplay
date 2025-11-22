@@ -150,6 +150,8 @@ class _PredeterminedAlgorithmsViewState
         controller: _tabController,
         labelColor: Colors.white,
         unselectedLabelColor: Colors.black.withOpacity(0.5),
+        labelPadding: EdgeInsets.zero,
+        indicatorPadding: EdgeInsets.symmetric(horizontal: w * 0.01),
         indicatorColor: AppColors.orange,
         indicatorWeight: w * 0.01,
         labelStyle: AppTextStyles.code.copyWith(
@@ -160,20 +162,29 @@ class _PredeterminedAlgorithmsViewState
         tabs: [
           Tab(
             child: Container(
-              padding: EdgeInsets.symmetric(vertical: h * 0.01),
-              child: const Text('NIVEL 1'),
+              padding: EdgeInsets.symmetric(
+                vertical: h * 0.01,
+                horizontal: w * 0.03,
+              ),
+              child: const Text('NIVEL 1', maxLines: 1, softWrap: false),
             ),
           ),
           Tab(
             child: Container(
-              padding: EdgeInsets.symmetric(vertical: h * 0.01),
-              child: const Text('NIVEL 2'),
+              padding: EdgeInsets.symmetric(
+                vertical: h * 0.01,
+                horizontal: w * 0.03,
+              ),
+              child: const Text('NIVEL 2', maxLines: 1, softWrap: false),
             ),
           ),
           Tab(
             child: Container(
-              padding: EdgeInsets.symmetric(vertical: h * 0.01),
-              child: const Text('NIVEL 3'),
+              padding: EdgeInsets.symmetric(
+                vertical: h * 0.01,
+                horizontal: w * 0.03,
+              ),
+              child: const Text('NIVEL 3', maxLines: 1, softWrap: false),
             ),
           ),
         ],

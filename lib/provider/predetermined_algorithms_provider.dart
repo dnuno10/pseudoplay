@@ -52,7 +52,7 @@ FIN''',
   ESCRIBIR "Ingresa un número:"
   LEER numero
 
-  residuo = numero - (numero / 2) * 2
+  residuo = numero % 2
 
   Si residuo == 0 Entonces
     ESCRIBIR numero, " es par"
@@ -185,14 +185,15 @@ FIN''',
       codigo: '''INICIO
   VARIABLE numero = 0
   VARIABLE contador = 1
+  VARIABLE limite = 10
 
   ESCRIBIR "¿De qué número deseas la tabla?"
   LEER numero
 
-  Repite
+  MIENTRAS contador <= limite HACER
     ESCRIBIR numero, " x ", contador, " = ", numero * contador
     contador = contador + 1
-  FinRepite
+  FinMientras
 FIN''',
     ),
     PredeterminedAlgorithm(
@@ -207,14 +208,10 @@ FIN''',
   LEER n
   temp = n
 
-  Repite
-    Si temp <= 0 Entonces
-      FinRepite
-    FinSi
-
+  MIENTRAS temp > 0 HACER
     resultado = resultado * temp
     temp = temp - 1
-  FinRepite
+  FinMientras
 
   ESCRIBIR "Factorial de", n, "es:", resultado
 FIN''',
@@ -230,14 +227,10 @@ FIN''',
   LEER limite
 
   ESCRIBIR "Números pares:"
-  Repite
-    Si contador > limite Entonces
-      FinRepite
-    FinSi
-
+  MIENTRAS contador <= limite HACER
     ESCRIBIR contador
     contador = contador + 2
-  FinRepite
+  FinMientras
 FIN''',
     ),
     PredeterminedAlgorithm(
@@ -246,19 +239,17 @@ FIN''',
       codigo: '''INICIO
   VARIABLE total = 0
   VARIABLE contador = 0
-  VARIABLE calificacion = 0
+  VARIABLE calificacion = -1
 
-  Repite
+  MIENTRAS calificacion != 0 HACER
     ESCRIBIR "Ingresa calificación (0 para terminar):"
     LEER calificacion
 
-    Si calificacion == 0 Entonces
-      FinRepite
+    Si calificacion != 0 Entonces
+      total = total + calificacion
+      contador = contador + 1
     FinSi
-
-    total = total + calificacion
-    contador = contador + 1
-  FinRepite
+  FinMientras
 
   Si contador > 0 Entonces
     ESCRIBIR "Promedio:", total / contador
@@ -278,14 +269,10 @@ FIN''',
   ESCRIBIR "Ingresa N:"
   LEER n
 
-  Repite
-    Si i > n Entonces
-      FinRepite
-    FinSi
-
+  MIENTRAS i <= n HACER
     suma = suma + i
     i = i + 1
-  FinRepite
+  FinMientras
 
   ESCRIBIR "La suma es:", suma
 FIN''',
@@ -334,14 +321,10 @@ FIN''',
   Si temp == 0 Entonces
     contador = 1
   Sino
-    Repite
-      Si temp <= 0 Entonces
-        FinRepite
-      FinSi
-
+    MIENTRAS temp > 0 HACER
       temp = temp / 10
       contador = contador + 1
-    FinRepite
+    FinMientras
   FinSi
 
   ESCRIBIR "El número tiene", contador, "dígitos"
@@ -361,14 +344,10 @@ FIN''',
   ESCRIBIR "Ingresa el exponente:"
   LEER exponente
 
-  Repite
-    Si i >= exponente Entonces
-      FinRepite
-    FinSi
-
+  MIENTRAS i < exponente HACER
     resultado = resultado * base
     i = i + 1
-  FinRepite
+  FinMientras
 
   ESCRIBIR base, "^", exponente, "=", resultado
 FIN''',
@@ -387,33 +366,24 @@ FIN''',
 
   ESCRIBIR "Números primos:"
 
-  Repite
-    Si num > n Entonces
-      FinRepite
-    FinSi
-
+  MIENTRAS num <= n HACER
     esPrimo = 1
     divisor = 2
 
-    Repite
-      Si divisor >= num Entonces
-        FinRepite
-      FinSi
-
+    MIENTRAS divisor < num Y esPrimo == 1 HACER
       Si num - (num / divisor) * divisor == 0 Entonces
         esPrimo = 0
-        FinRepite
       FinSi
 
       divisor = divisor + 1
-    FinRepite
+    FinMientras
 
     Si esPrimo == 1 Entonces
       ESCRIBIR num
     FinSi
 
     num = num + 1
-  FinRepite
+  FinMientras
 FIN''',
     ),
     PredeterminedAlgorithm(
@@ -427,15 +397,11 @@ FIN''',
   ESCRIBIR "Ingresa un número:"
   LEER numero
 
-  Repite
-    Si numero <= 0 Entonces
-      FinRepite
-    FinSi
-
-    digito = numero - (numero / 10) * 10
+  MIENTRAS numero > 0 HACER
+    digito = numero % 10
     invertido = invertido * 10 + digito
     numero = numero / 10
-  FinRepite
+  FinMientras
 
   ESCRIBIR "Número invertido:", invertido
 FIN''',
@@ -513,7 +479,7 @@ FIN''',
   VARIABLE residuo = 0
 
   Funcion verificarPar
-    residuo = numero - (numero / 2) * 2
+    residuo = numero % 2
     Si residuo == 0 Entonces
       esPar = 1
     Sino
@@ -545,14 +511,10 @@ FIN''',
     resultado = 1
     temp = n
 
-    Repite
-      Si temp <= 0 Entonces
-        FinRepite
-      FinSi
-
+    MIENTRAS temp > 0 HACER
       resultado = resultado * temp
       temp = temp - 1
-    FinRepite
+    FinMientras
   FinFuncion
 
   ESCRIBIR "Ingresa un número:"
@@ -635,14 +597,10 @@ FIN''',
     resultado = 1
     i = 0
 
-    Repite
-      Si i >= exponente Entonces
-        FinRepite
-      FinSi
-
+    MIENTRAS i < exponente HACER
       resultado = resultado * base
       i = i + 1
-    FinRepite
+    FinMientras
   FinFuncion
 
   ESCRIBIR "Ingresa la base:"

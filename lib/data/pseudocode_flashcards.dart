@@ -51,9 +51,9 @@ const List<PseudocodeFlashcard> pseudocodeFlashcards = [
   PseudocodeFlashcard(
     title: 'Repetir un número de veces',
     description:
-        'REPITE ejecuta el bloque hasta que la condición indique terminar.',
+        'Controla cuántas repeticiones haces usando un contador con MIENTRAS.',
     codeExample:
-        'INICIO\n  REPITE\n    ESCRIBIR "Cuenta regresiva"\n  FinRepite\nFIN',
+        'INICIO\n  VARIABLE conteo = 3\n  MIENTRAS conteo > 0 HACER\n    ESCRIBIR "Cuenta regresiva", conteo\n    conteo = conteo - 1\n  FinMientras\nFIN',
   ),
   PseudocodeFlashcard(
     title: 'Mientras una condición se cumpla',

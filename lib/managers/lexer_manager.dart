@@ -36,11 +36,18 @@ class LexerManager {
     "fin-programa",
     "mientras",
     "fin-mientras",
+    "Mientras",
+    "FinMientras",
+    "MIENTRAS",
+    "FINMIENTRAS",
+    "HACER",
+    "hacer",
+    "Hacer",
   ];
 
   final List<String> comparadores = ["==", ">=", "<=", "!=", ">", "<"];
 
-  final List<String> operadores = ["+", "-", "*", "/"];
+  final List<String> operadores = ["+", "-", "*", "/", "%"];
 
   late final Set<String> _palabrasReservadasNormalized = {
     for (final palabra in palabrasReservadas) palabra.toUpperCase(),
@@ -230,7 +237,8 @@ class LexerManager {
       return TipoToken.texto;
     }
 
-    final isIdent = RegExp(r"^[a-zA-Z_][a-zA-Z0-9_]*$");
+    // Identificador: permite letras (incluyendo acentos y ñ), números y guión bajo
+    final isIdent = RegExp(r"^[a-zA-ZáéíóúÁÉÍÓÚñÑ_][a-zA-ZáéíóúÁÉÍÓÚñÑ0-9_]*$");
     if (isIdent.hasMatch(lexema)) {
       return TipoToken.identificador;
     }

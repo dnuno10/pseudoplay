@@ -59,6 +59,10 @@ class InterpreterManager {
       );
       estado.lineaActual = instrucciones.length;
       return;
+    } else if (t.saltoVerdadero != null) {
+      // Tuple genérico con salto (FinMientras, FinRepite, Sino)
+      estado.lineaActual = t.saltoVerdadero!;
+      return;
     }
 
     estado.lineaActual++;
@@ -300,6 +304,9 @@ class InterpreterManager {
         // Llamada recursiva a función
         _ejecutarFunctionCall(inst);
         // No incrementar, _ejecutarFunctionCall ya maneja el salto
+      } else if (inst.saltoVerdadero != null) {
+        // Tuple genérico con salto (Sino, FinMientras, etc.)
+        estado.lineaActual = inst.saltoVerdadero!;
       } else {
         estado.lineaActual++;
       }
@@ -371,15 +378,14 @@ class InterpreterManager {
       return valor;
     }
 
-    // Convertir a lista de valores
-    List<dynamic> valores = expr.map(_resolverValor).toList();
-    print('[EVALUAR] Valores resueltos: $valores');
+    // Primero: evaluar paréntesis internos recursivamente
+    List<Token> tokensConParentesisResueltos = _evaluarParentesis(expr);
 
     // Evaluar operación simple: a + b, a - b, etc.
-    if (valores.length == 3) {
-      final izquierda = valores[0];
-      final op = expr[1].lexema;
-      final derecha = valores[2];
+    if (tokensConParentesisResueltos.length == 3) {
+      final izquierda = _resolverValor(tokensConParentesisResueltos[0]);
+      final op = tokensConParentesisResueltos[1].lexema;
+      final derecha = _resolverValor(tokensConParentesisResueltos[2]);
 
       print('[EVALUAR] Operación: $izquierda $op $derecha');
       final resultado = _operar(izquierda, op, derecha);
@@ -387,22 +393,159 @@ class InterpreterManager {
       return resultado;
     }
 
-    return valores.first;
+    // Evaluar expresión compleja con múltiples operadores
+    // Respetar precedencia: primero * y /, luego + y -
+
+    // Primero: multiplicación, división y módulo (izquierda a derecha)
+    int i = 0;
+    while (i < tokensConParentesisResueltos.length) {
+      if (tokensConParentesisResueltos[i].lexema == '*' ||
+          tokensConParentesisResueltos[i].lexema == '/' ||
+          tokensConParentesisResueltos[i].lexema == '%') {
+        // i es el operador, i-1 es izquierda, i+1 es derecha
+        if (i > 0 && i < tokensConParentesisResueltos.length - 1) {
+          final izq = _resolverValor(tokensConParentesisResueltos[i - 1]);
+          final op = tokensConParentesisResueltos[i].lexema;
+          final der = _resolverValor(tokensConParentesisResueltos[i + 1]);
+
+          final resultado = _operar(izq, op, der);
+          print('[EVALUAR] Operación parcial: $izq $op $der = $resultado');
+
+          // Reemplazar los 3 tokens (izq, op, der) con el resultado
+          tokensConParentesisResueltos.removeRange(i - 1, i + 2);
+          tokensConParentesisResueltos.insert(
+            i - 1,
+            Token(
+              tipo: TipoToken.numero,
+              lexema: resultado.toString(),
+              linea: 0,
+              columna: 0,
+            ),
+          );
+          i = 0; // Reiniciar desde el principio
+        } else {
+          i++;
+        }
+      } else {
+        i++;
+      }
+    }
+
+    // Segundo: suma y resta (izquierda a derecha)
+    i = 0;
+    while (i < tokensConParentesisResueltos.length) {
+      if (tokensConParentesisResueltos[i].lexema == '+' ||
+          tokensConParentesisResueltos[i].lexema == '-') {
+        if (i > 0 && i < tokensConParentesisResueltos.length - 1) {
+          final izq = _resolverValor(tokensConParentesisResueltos[i - 1]);
+          final op = tokensConParentesisResueltos[i].lexema;
+          final der = _resolverValor(tokensConParentesisResueltos[i + 1]);
+
+          final resultado = _operar(izq, op, der);
+          print('[EVALUAR] Operación parcial: $izq $op $der = $resultado');
+
+          // Reemplazar los 3 tokens (izq, op, der) con el resultado
+          tokensConParentesisResueltos.removeRange(i - 1, i + 2);
+          tokensConParentesisResueltos.insert(
+            i - 1,
+            Token(
+              tipo: TipoToken.numero,
+              lexema: resultado.toString(),
+              linea: 0,
+              columna: 0,
+            ),
+          );
+          i = 0; // Reiniciar desde el principio
+        } else {
+          i++;
+        }
+      } else {
+        i++;
+      }
+    }
+
+    final resultadoFinal = tokensConParentesisResueltos.isNotEmpty
+        ? _resolverValor(tokensConParentesisResueltos.first)
+        : null;
+    print('[EVALUAR] Resultado final: $resultadoFinal');
+    return resultadoFinal;
+  }
+
+  /// ----------------------------------------------------
+  /// EVALUAR PARÉNTESIS: evalúa expresiones dentro de paréntesis recursivamente
+  /// ----------------------------------------------------
+  List<Token> _evaluarParentesis(List<Token> tokens) {
+    // Buscar el paréntesis más interno (de izquierda a derecha)
+    int profundidadMax = 0;
+    int profundidadActual = 0;
+    int inicioParentesis = -1;
+    int finParentesis = -1;
+
+    for (int i = 0; i < tokens.length; i++) {
+      if (tokens[i].tipo == TipoToken.parentesisApertura) {
+        profundidadActual++;
+        if (profundidadActual > profundidadMax) {
+          profundidadMax = profundidadActual;
+          inicioParentesis = i;
+        }
+      } else if (tokens[i].tipo == TipoToken.parentesisCierre) {
+        if (profundidadActual == profundidadMax && inicioParentesis != -1) {
+          finParentesis = i;
+          break;
+        }
+        profundidadActual--;
+      }
+    }
+
+    // Si no hay paréntesis, devolver los tokens tal cual
+    if (inicioParentesis == -1 || finParentesis == -1) {
+      return tokens;
+    }
+
+    // Evaluar la expresión dentro del paréntesis más interno
+    final tokensInternos = tokens.sublist(inicioParentesis + 1, finParentesis);
+    final resultadoInterno = _evaluarExpresion(tokensInternos);
+
+    // Crear token con el resultado
+    final tokenResultado = Token(
+      tipo: TipoToken.numero,
+      lexema: resultadoInterno.toString(),
+      linea: 0,
+      columna: 0,
+    );
+
+    // Reemplazar el paréntesis y su contenido con el resultado
+    final nuevosTokens = <Token>[
+      ...tokens.sublist(0, inicioParentesis),
+      tokenResultado,
+      ...tokens.sublist(finParentesis + 1),
+    ];
+
+    // Continuar evaluando paréntesis restantes recursivamente
+    return _evaluarParentesis(nuevosTokens);
   }
 
   /// ----------------------------------------------------
   /// OPERAR ARITMÉTICAMENTE
   /// ----------------------------------------------------
   dynamic _operar(dynamic a, String op, dynamic b) {
+    // Convertir a números si son strings
+    num numA = a is num ? a : num.tryParse(a.toString()) ?? 0;
+    num numB = b is num ? b : num.tryParse(b.toString()) ?? 0;
+
     switch (op) {
       case "+":
-        return a + b;
+        return numA + numB;
       case "-":
-        return a - b;
+        return numA - numB;
       case "*":
-        return a * b;
+        return numA * numB;
       case "/":
-        return a / b;
+        // División real
+        return numA / numB;
+      case "%":
+        // Módulo (resto de la división)
+        return numA % numB;
       default:
         return null;
     }
