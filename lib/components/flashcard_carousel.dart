@@ -145,12 +145,14 @@ class _FlashcardTileState extends State<_FlashcardTile> {
               border: Border.all(color: Colors.white24),
             ),
             padding: const EdgeInsets.all(12),
-            child: Text(
-              widget.data.codeExample,
-              style: AppTextStyles.code.copyWith(
-                color: const Color(0xFF00FFAA),
-                fontSize: 14,
-                height: 1.25,
+            child: SingleChildScrollView(
+              child: Text(
+                widget.data.codeExample,
+                style: AppTextStyles.code.copyWith(
+                  color: const Color(0xFF00FFAA),
+                  fontSize: 14,
+                  height: 1.25,
+                ),
               ),
             ),
           ),
