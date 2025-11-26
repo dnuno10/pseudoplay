@@ -28,7 +28,7 @@ class _BlockDraggableState extends State<BlockDraggable>
     super.initState();
     _progressController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1000), // 1 segundo
+      duration: const Duration(milliseconds: 1000),
     );
   }
 
@@ -62,9 +62,7 @@ class _BlockDraggableState extends State<BlockDraggable>
       onPointerCancel: (_) => _resetProgress(),
       child: LongPressDraggable<BlockPaletteItem>(
         data: widget.item,
-        delay: const Duration(
-          milliseconds: 1000,
-        ), // Espera 1 segundo antes de arrastrar
+        delay: const Duration(milliseconds: 1000),
 
         onDragStarted: _resetProgress,
         onDraggableCanceled: (_, __) => _resetProgress(),
@@ -79,7 +77,6 @@ class _BlockDraggableState extends State<BlockDraggable>
           ),
         ),
 
-        // Versión cuando estás arrastrando
         childWhenDragging: Opacity(opacity: 0.3, child: _buildBlock()),
 
         child: _buildBlock(),
@@ -97,7 +94,6 @@ class _BlockDraggableState extends State<BlockDraggable>
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Contenido principal del bloque
           Padding(
             padding: EdgeInsets.all(widget.w * 0.035),
             child: Row(
@@ -140,7 +136,6 @@ class _BlockDraggableState extends State<BlockDraggable>
                     ],
                   ),
                 ),
-                // Icono de mantener presionado
                 if (!isDragging) ...[
                   const SizedBox(width: 8),
                   Icon(
@@ -152,7 +147,6 @@ class _BlockDraggableState extends State<BlockDraggable>
               ],
             ),
           ),
-          // Barra de progreso en la parte inferior
           if (!isDragging)
             AnimatedBuilder(
               animation: _progressController,

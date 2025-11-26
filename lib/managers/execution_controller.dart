@@ -82,9 +82,6 @@ class ExecutionController extends Notifier<ExecutionState> {
   @override
   ExecutionState build() => ExecutionState.initial();
 
-  /// ------------------------------------------------------
-  /// FLUJO PRINCIPAL: ANALIZAR, PARSEAR, GENERAR
-  /// ------------------------------------------------------
   void procesarCodigo(String codigo) {
     final lexer = ref.read(lexerManagerProvider);
     final parser = ref.read(parserManagerProvider);
@@ -92,23 +89,17 @@ class ExecutionController extends Notifier<ExecutionState> {
     final interprete = ref.read(interpreterManagerProvider);
 
     try {
-      // 1. Tokenizar
       final tokens = lexer.analizar(codigo);
-
-      // 2. Validar sintaxis
       parser.validarSintaxis(tokens);
 
-      // 3. Parsear
       final estructura = parser.parsear(tokens);
 
-      // 4. Generar tuplas finales
       final tuplas = generador.generar(estructura);
 
-      // 5. Limpiar tabla de símbolos antes de cargar
       interprete.tablaSimbolos.limpiar();
+
       interprete.estado.reset();
 
-      // 6. Cargar al intérprete
       interprete.cargarPrograma(tuplas);
 
       if (tuplas.isNotEmpty) {
@@ -144,19 +135,14 @@ class ExecutionController extends Notifier<ExecutionState> {
     }
   }
 
-  /// ------------------------------------------------------
-  /// EJECUTAR 1 PASO
-  /// ------------------------------------------------------
   void ejecutarPaso() {
-    if (!state.listo) return; // Si no está listo, no hacer nada
+    if (!state.listo) return;
     final interprete = ref.read(interpreterManagerProvider);
 
-    // Verificar si ya terminó la ejecución
     if (interprete.estado.lineaActual >= interprete.instrucciones.length) {
       return;
     }
 
-    // Verificar si la siguiente instrucción es un LEER
     final siguienteInstruccion =
         interprete.instrucciones[interprete.estado.lineaActual];
     if (siguienteInstruccion is ReadTuple) {
@@ -164,7 +150,6 @@ class ExecutionController extends Notifier<ExecutionState> {
         '[CONTROLLER] Detectado ReadTuple para variable: ${siguienteInstruccion.variable}',
       );
       print('[CONTROLLER] Pausando ejecución para esperar input');
-      // Pausar y esperar input
       state = state.copyWith(
         esperandoInput: true,
         variableInput: siguienteInstruccion.variable,
@@ -182,29 +167,23 @@ class ExecutionController extends Notifier<ExecutionState> {
     );
   }
 
-  /// ------------------------------------------------------
-  /// CONTINUAR DESPUÉS DE RECIBIR INPUT
-  /// ------------------------------------------------------
   void continuarConInput(String inputValue) {
     if (!state.esperandoInput || state.variableInput == null) return;
 
     final interprete = ref.read(interpreterManagerProvider);
 
-    // Convertir el input a número
     final valor = double.tryParse(inputValue) ?? 0.0;
 
     print(
       '[CONTROLLER] continuarConInput: variable=${state.variableInput}, valor=$valor',
     );
 
-    // Actualizar la variable en la tabla de símbolos
     interprete.tablaSimbolos.actualizar(state.variableInput!, valor);
 
     print(
       '[CONTROLLER] Tabla después de actualizar: ${interprete.tablaSimbolos.mapaVariables}',
     );
 
-    // Registrar en desk check
     interprete.estado.registrarPaso(
       linea: 'Línea ${interprete.estado.lineaActual + 1}',
       variables: Map.from(interprete.tablaSimbolos.mapaVariables),
@@ -213,10 +192,8 @@ class ExecutionController extends Notifier<ExecutionState> {
       valorNuevo: valor.toString(),
     );
 
-    // Avanzar a la siguiente línea
     interprete.estado.lineaActual++;
 
-    // Actualizar el estado
     state = state.copyWith(
       esperandoInput: false,
       variables: Map.unmodifiable(interprete.tablaSimbolos.mapaVariables),
@@ -227,14 +204,10 @@ class ExecutionController extends Notifier<ExecutionState> {
     );
   }
 
-  /// ------------------------------------------------------
-  /// RETROCEDER 1 PASO
-  /// ------------------------------------------------------
   void retrocederPaso() {
     if (!state.listo) return;
     final interprete = ref.read(interpreterManagerProvider);
 
-    // Retroceder en el intérprete
     if (interprete.estado.lineaActual > 0) {
       interprete.estado.lineaActual--;
     }
@@ -247,14 +220,10 @@ class ExecutionController extends Notifier<ExecutionState> {
     );
   }
 
-  /// ------------------------------------------------------
-  /// REINICIAR PROGRAMA
-  /// ------------------------------------------------------
   void reiniciar() {
     final interprete = ref.read(interpreterManagerProvider);
     interprete.reset();
 
-    // Mantener las tuplas procesadas pero resetear el estado
     state = state.copyWith(
       variables: const {},
       consola: const [],

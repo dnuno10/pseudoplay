@@ -12,7 +12,6 @@ class UserPreferencesManager {
     _prefs = await SharedPreferences.getInstance();
   }
 
-  /// Guardar idioma
   Future<void> setIdioma(String value) async {
     await _prefs?.setString("idioma", value);
   }
@@ -21,7 +20,6 @@ class UserPreferencesManager {
     return _prefs?.getString("idioma") ?? "es";
   }
 
-  /// Guardar modo oscuro
   Future<void> setModoOscuro(bool value) async {
     await _prefs?.setBool("dark_mode", value);
   }

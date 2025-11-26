@@ -7,7 +7,6 @@ class Tuple {
 
   Tuple({required this.lineaID, this.saltoVerdadero, this.saltoFalso});
 
-  // Lógica se implementará en managers (InterpreterManager)
   void ejecutar(Map<String, dynamic> ctx) {}
 }
 

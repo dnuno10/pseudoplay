@@ -65,7 +65,6 @@ FIN
     _scroll = ScrollController();
     _indentFormatter = PseudocodeIndentFormatter();
 
-    // Listener para detectar cuando el teclado está visible
     _focusNode.addListener(() {
       final hasFocus = _focusNode.hasFocus;
       setState(() {
@@ -178,14 +177,12 @@ FIN
       onTap: _isFocusMode
           ? null
           : () {
-              // Ocultar teclado al tocar fuera sólo cuando no estamos en modo enfoque
               FocusScope.of(context).unfocus();
             },
       child: Scaffold(
         backgroundColor: const Color(0xFFF4EEDB),
         body: Stack(
           children: [
-            // Textura retro
             Positioned.fill(
               child: CustomPaint(painter: _RetroTexturePainter()),
             ),
@@ -224,9 +221,6 @@ FIN
     );
   }
 
-  // ------------------------------------------------------------
-  // CRT SCANLINES
-  // ------------------------------------------------------------
   Widget _buildCRTScanlines(double w, double h) {
     return AnimatedBuilder(
       animation: _crtController,
@@ -239,9 +233,6 @@ FIN
     );
   }
 
-  // ------------------------------------------------------------
-  // BOTÓN DE REGRESAR RETRO
-  // ------------------------------------------------------------
   Widget _buildBackButton(double w, double h) {
     return GestureDetector(
       onTap: () => context.go('/menu'),
@@ -261,9 +252,6 @@ FIN
     );
   }
 
-  // ------------------------------------------------------------
-  // TÍTULO
-  // ------------------------------------------------------------
   Widget _buildTitle(double w) {
     return Text(
       "Edición de\npseudocódigo",
@@ -275,9 +263,6 @@ FIN
     );
   }
 
-  // ------------------------------------------------------------
-  // SELECTOR DE VELOCIDAD DE EJECUCIÓN
-  // ------------------------------------------------------------
   Widget _buildSpeedSelector(double w, double h) {
     final speed = ref.watch(executionSpeedProvider);
 
@@ -374,10 +359,6 @@ FIN
     );
   }
 
-  // ------------------------------------------------------------
-  // PESTAÑA ALGORITMOS DE EJEMPLO (Eliminado - ahora en toolbar)
-  // ------------------------------------------------------------
-
   void _openAlgorithms() {
     showDialog(
       context: context,
@@ -385,13 +366,9 @@ FIN
     );
   }
 
-  // ------------------------------------------------------------
-  // TOOLBAR: PLAY + ALGORITMOS + OCULTAR TECLADO (solo si visible)
-  // ------------------------------------------------------------
   Widget _buildToolbar(double w, double h) {
     return Row(
       children: [
-        // Botón PLAY
         _toolbarBtn(
           w,
           h,
@@ -400,7 +377,6 @@ FIN
           onTap: () => context.go('/execution'),
         ),
         SizedBox(width: w * 0.03),
-        // Botón Algoritmos de ejemplo
         Expanded(
           child: GestureDetector(
             onTap: _openAlgorithms,
@@ -443,7 +419,6 @@ FIN
             ),
           ),
         ),
-        // Botón Ocultar teclado - Solo visible cuando el teclado está activo
         if (_isKeyboardVisible) ...[
           SizedBox(width: w * 0.03),
           _toolbarBtn(
@@ -634,9 +609,6 @@ FIN
     );
   }
 
-  // ------------------------------------------------------------
-  // ÁREA DEL EDITOR RETRO
-  // ------------------------------------------------------------
   Widget _buildEditorArea(
     double w,
     double h, {
@@ -778,9 +750,6 @@ FIN
   }
 }
 
-// ============================================================
-// TEXTURA RETRO LINEAL
-// ============================================================
 class _RetroTexturePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
@@ -797,9 +766,6 @@ class _RetroTexturePainter extends CustomPainter {
   bool shouldRepaint(_RetroTexturePainter oldDelegate) => false;
 }
 
-// ------------------------------------------------------------
-// SCANLINE PAINTER
-// ------------------------------------------------------------
 class _ScanlinePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {

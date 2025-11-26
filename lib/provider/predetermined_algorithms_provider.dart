@@ -3,9 +3,6 @@ import '../models/predetermined_algorithm.dart';
 
 final predeterminedAlgorithmsProvider = Provider<List<PredeterminedAlgorithm>>(
   (ref) => const [
-    // ============================================================
-    // NIVEL 1 - BÁSICO (10 ejercicios)
-    // ============================================================
     PredeterminedAlgorithm(
       titulo: 'Suma de dos números',
       nivel: 1,
@@ -176,9 +173,6 @@ FIN''',
 FIN''',
     ),
 
-    // ============================================================
-    // NIVEL 2 - INTERMEDIO (10 ejercicios)
-    // ============================================================
     PredeterminedAlgorithm(
       titulo: 'Tabla de multiplicar',
       nivel: 2,
@@ -407,9 +401,6 @@ FIN''',
 FIN''',
     ),
 
-    // ============================================================
-    // NIVEL 3 - AVANZADO CON FUNCIONES (10 ejercicios)
-    // ============================================================
     PredeterminedAlgorithm(
       titulo: 'Calculadora con funciones',
       nivel: 3,

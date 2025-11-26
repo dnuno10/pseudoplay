@@ -25,7 +25,6 @@ class _CodeExecutionViewState extends ConsumerState<CodeExecutionView>
   final ScrollController _scrollController = ScrollController();
   late final UserPreferencesNotifier _prefsNotifier;
 
-  // Estados de ejecución
   bool _isExecuting = false;
   bool _showScrollHint = false;
 
@@ -46,13 +45,11 @@ class _CodeExecutionViewState extends ConsumerState<CodeExecutionView>
     _prefsNotifier = ref.read(userPreferencesProvider.notifier);
     _prefsNotifier.startSession(GameMode.execution);
 
-    // Procesar código y luego iniciar ejecución automática
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         final codigo = ref.read(editorProvider);
         ref.read(executionControllerProvider.notifier).procesarCodigo(codigo);
 
-        // Esperar un poco y luego iniciar ejecución automática
         Future.delayed(const Duration(milliseconds: 300), () {
           if (mounted) {
             _startAutoExecution();
@@ -79,17 +76,15 @@ class _CodeExecutionViewState extends ConsumerState<CodeExecutionView>
         curve: Curves.easeOut,
       );
       setState(() => _showScrollHint = true);
-      // Ocultar flecha después de 3 segundos
       Future.delayed(const Duration(seconds: 3), () {
         if (mounted) setState(() => _showScrollHint = false);
       });
     }
   }
 
-  // Iniciar ejecución automática
   void _startAutoExecution() async {
     final speed = ref.read(executionSpeedProvider);
-    if (speed == 0) return; // Modo manual
+    if (speed == 0) return;
 
     setState(() => _isExecuting = true);
 
@@ -97,13 +92,11 @@ class _CodeExecutionViewState extends ConsumerState<CodeExecutionView>
       final exec = ref.read(executionControllerProvider);
       final interprete = ref.read(interpreterManagerProvider);
 
-      // Verificar si está esperando input
       if (exec.esperandoInput) {
         await _mostrarDialogoLeer();
         continue;
       }
 
-      // Verificar si ya terminó la ejecución
       if (exec.listo &&
           interprete.estado.lineaActual < interprete.instrucciones.length) {
         ref.read(executionControllerProvider.notifier).ejecutarPaso();
@@ -114,7 +107,6 @@ class _CodeExecutionViewState extends ConsumerState<CodeExecutionView>
       } else {
         if (!mounted) return;
         setState(() => _isExecuting = false);
-        // Scroll automático a la salida cuando termine
         _scrollToBottom();
         break;
       }
@@ -128,7 +120,6 @@ class _CodeExecutionViewState extends ConsumerState<CodeExecutionView>
   void _executeNextStep() async {
     ref.read(executionControllerProvider.notifier).ejecutarPaso();
 
-    // Verificar si ahora está esperando input
     final exec = ref.read(executionControllerProvider);
     if (exec.esperandoInput) {
       await _mostrarDialogoLeer();
@@ -242,16 +233,12 @@ class _CodeExecutionViewState extends ConsumerState<CodeExecutionView>
     final codigo = ref.watch(editorProvider);
     final exec = ref.watch(executionControllerProvider);
 
-    // NO llamar _schedule aquí, ya se procesó en initState
-
     return Scaffold(
       backgroundColor: const Color(0xFFF4EEDB),
       body: Stack(
         children: [
-          // TEXTURA RETRO
           Positioned.fill(child: CustomPaint(painter: _RetroTexturePainter())),
 
-          // CRT SCANLINES
           IgnorePointer(child: _buildScanlines(w, h)),
 
           SafeArea(
@@ -275,28 +262,23 @@ class _CodeExecutionViewState extends ConsumerState<CodeExecutionView>
                   SizedBox(height: h * 0.02),
                   _buildConsole(exec.consola, exec.error, w, h),
 
-                  // Botón para ver prueba de escritorio (solo si ha terminado)
                   if (_haTerminado(exec)) ...[
                     SizedBox(height: h * 0.02),
                     _buildDeskCheckButton(w, h),
                   ],
 
-                  SizedBox(height: h * 0.03), // Espacio adicional al final
+                  SizedBox(height: h * 0.03),
                 ],
               ),
             ),
           ),
 
-          // Flecha indicadora de scroll
           if (_showScrollHint) _buildScrollHint(w, h),
         ],
       ),
     );
   }
 
-  // ------------------------------------------------------------
-  // HEADER RETRO
-  // ------------------------------------------------------------
   Widget _buildHeader(double w) {
     return GestureDetector(
       onTap: () => context.go('/editor'),
@@ -317,18 +299,12 @@ class _CodeExecutionViewState extends ConsumerState<CodeExecutionView>
     );
   }
 
-  // ------------------------------------------------------------
-  // VERIFICAR SI HA TERMINADO LA EJECUCIÓN
-  // ------------------------------------------------------------
   bool _haTerminado(ExecutionState exec) {
     if (!exec.listo) return false;
     final interprete = ref.read(interpreterManagerProvider);
     return interprete.estado.lineaActual >= interprete.instrucciones.length;
   }
 
-  // ------------------------------------------------------------
-  // BOTÓN PARA VER PRUEBA DE ESCRITORIO
-  // ------------------------------------------------------------
   Widget _buildDeskCheckButton(double w, double h) {
     return Center(
       child: GestureDetector(
@@ -369,9 +345,6 @@ class _CodeExecutionViewState extends ConsumerState<CodeExecutionView>
     );
   }
 
-  // ------------------------------------------------------------
-  // INDICADOR DE EJECUCIÓN
-  // ------------------------------------------------------------
   Widget _buildExecutingIndicator(double w) {
     return AnimatedBuilder(
       animation: _pulseController,
@@ -403,9 +376,6 @@ class _CodeExecutionViewState extends ConsumerState<CodeExecutionView>
     );
   }
 
-  // ------------------------------------------------------------
-  // BOTONES DE CONTROL
-  // ------------------------------------------------------------
   Widget _buildControlButtons(double w, double h) {
     final speed = ref.watch(executionSpeedProvider);
     final exec = ref.watch(executionControllerProvider);
@@ -416,7 +386,6 @@ class _CodeExecutionViewState extends ConsumerState<CodeExecutionView>
     return Row(
       children: [
         if (speed == 0) ...[
-          // Modo Manual - Botones Anterior y Siguiente
           _retroButton(
             w,
             h,
@@ -435,7 +404,6 @@ class _CodeExecutionViewState extends ConsumerState<CodeExecutionView>
             onTap: _executeNextStep,
           ),
           SizedBox(width: w * 0.02),
-          // Botón de reiniciar solo con icono en modo manual
           _retroButton(
             w,
             h,
@@ -447,9 +415,7 @@ class _CodeExecutionViewState extends ConsumerState<CodeExecutionView>
             },
           ),
         ] else ...[
-          // Modo Automático
           if (!haEmpezado && !_isExecuting) ...[
-            // Mostrar EJECUTAR solo si no ha comenzado
             _retroButton(
               w,
               h,
@@ -460,7 +426,6 @@ class _CodeExecutionViewState extends ConsumerState<CodeExecutionView>
             ),
             SizedBox(width: w * 0.02),
           ] else if (_isExecuting) ...[
-            // Mostrar PAUSAR si está ejecutando
             _retroButton(
               w,
               h,
@@ -471,7 +436,6 @@ class _CodeExecutionViewState extends ConsumerState<CodeExecutionView>
             ),
             SizedBox(width: w * 0.02),
           ],
-          // Siempre mostrar REINICIAR, pero solo si ha empezado
           if (haEmpezado) ...[
             _retroButton(
               w,
@@ -534,9 +498,6 @@ class _CodeExecutionViewState extends ConsumerState<CodeExecutionView>
     );
   }
 
-  // ------------------------------------------------------------
-  // EDITOR RETRO CON NÚMEROS DE LÍNEA
-  // ------------------------------------------------------------
   Widget _buildEditor(String code, double w, double h) {
     final lines = code.isEmpty
         ? ["// Escribe tu pseudocódigo aquí", "INICIO..."]
@@ -545,7 +506,6 @@ class _CodeExecutionViewState extends ConsumerState<CodeExecutionView>
     final execState = ref.watch(executionControllerProvider);
     final interprete = ref.watch(interpreterManagerProvider);
 
-    // Obtener el número de línea real del código (lineaID ajustado para iniciar en 1)
     int currentLineNumber = -1;
     int lineOffset = 0;
     if (execState.tuplas.isNotEmpty) {
@@ -581,7 +541,6 @@ class _CodeExecutionViewState extends ConsumerState<CodeExecutionView>
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Números de línea
             Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: List.generate(lines.length, (index) {
@@ -609,7 +568,6 @@ class _CodeExecutionViewState extends ConsumerState<CodeExecutionView>
                 );
               }),
             ),
-            // Código
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -639,9 +597,6 @@ class _CodeExecutionViewState extends ConsumerState<CodeExecutionView>
     );
   }
 
-  // ------------------------------------------------------------
-  // VARIABLES EN TIEMPO REAL RETRO
-  // ------------------------------------------------------------
   Widget _buildVariables(Map<String, dynamic> vars, double w, double h) {
     return Container(
       width: double.infinity,
@@ -710,9 +665,6 @@ class _CodeExecutionViewState extends ConsumerState<CodeExecutionView>
     );
   }
 
-  // ------------------------------------------------------------
-  // CONSOLA RETRO DIGITAL
-  // ------------------------------------------------------------
   Widget _buildConsole(List<String> output, String? error, double w, double h) {
     return Container(
       width: double.infinity,
@@ -783,9 +735,6 @@ class _CodeExecutionViewState extends ConsumerState<CodeExecutionView>
     );
   }
 
-  // ------------------------------------------------------------
-  // SCANLINES CRT
-  // ------------------------------------------------------------
   Widget _buildScanlines(double w, double h) {
     return AnimatedBuilder(
       animation: _crtController,
@@ -798,9 +747,6 @@ class _CodeExecutionViewState extends ConsumerState<CodeExecutionView>
     );
   }
 
-  // ------------------------------------------------------------
-  // FLECHA INDICADORA DE SCROLL
-  // ------------------------------------------------------------
   Widget _buildScrollHint(double w, double h) {
     return Positioned(
       bottom: h * 0.15,
@@ -855,9 +801,6 @@ class _CodeExecutionViewState extends ConsumerState<CodeExecutionView>
   }
 }
 
-// ------------------------------------------------------------
-// RETRO TEXTURE PAINTER
-// ------------------------------------------------------------
 class _RetroTexturePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
@@ -874,9 +817,6 @@ class _RetroTexturePainter extends CustomPainter {
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
-// ------------------------------------------------------------
-// SCANLINE PAINTER
-// ------------------------------------------------------------
 class _ScanlinePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {

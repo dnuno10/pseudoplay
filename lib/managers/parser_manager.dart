@@ -17,9 +17,6 @@ class ParserManager {
   int get _lineaActual =>
       _tokens.isEmpty ? 0 : (_fin ? _tokens.last.linea : _actual.linea);
 
-  /// ---------------------------------------------
-  /// MÉTODO PRINCIPAL → PARSEAR
-  /// ---------------------------------------------
   List<Tuple> parsear(List<Token> tokens) {
     _tokens = tokens;
     _indice = 0;
@@ -31,13 +28,11 @@ class ParserManager {
       _saltarSeparadores();
       if (_fin) break;
 
-      // Ignorar INICIO (inicio de programa)
       if (_esLexema("INICIO") || _esLexema("inicio-programa")) {
         _avanzar();
         continue;
       }
 
-      // Reconocer FIN (fin de programa)
       if (_esLexema("FIN") ||
           _esLexema("Fin") ||
           _esLexema("FinPrograma") ||
@@ -46,19 +41,16 @@ class ParserManager {
         continue;
       }
 
-      // Reconocer VARIABLE (declaración de variable)
       if (_esLexema("VARIABLE")) {
         instrucciones.add(_parseVariable());
         continue;
       }
 
-      // Reconocer LEER (versión mayúscula)
       if (_esLexema("LEER") || _esLexema("Leer") || _esLexema("leer")) {
         instrucciones.add(_parseLeer());
         continue;
       }
 
-      // Reconocer ESCRIBIR (versión mayúscula)
       if (_esLexema("ESCRIBIR") ||
           _esLexema("Escribir") ||
           _esLexema("escribir")) {
@@ -141,9 +133,6 @@ class ParserManager {
     return instrucciones;
   }
 
-  /// ----------------------------------------------------
-  /// PARSEAR ASIGNACIÓN:  variable = expresion
-  /// ----------------------------------------------------
   AssignTuple _parseAsignacion() {
     final variable = _actual;
     _avanzar();
@@ -162,12 +151,9 @@ class ParserManager {
     );
   }
 
-  /// ----------------------------------------------------
-  /// PARSEAR VARIABLE:  VARIABLE nombre = valor
-  /// ----------------------------------------------------
   AssignTuple _parseVariable() {
     final inicio = _actual;
-    _avanzar(); // Saltar "VARIABLE"
+    _avanzar();
 
     if (_fin || !_esTipoActual(TipoToken.identificador)) {
       throw SyntaxException(
@@ -193,12 +179,9 @@ class ParserManager {
     );
   }
 
-  /// ----------------------------------------------------
-  /// PARSEAR LEER:   Leer variable
-  /// ----------------------------------------------------
   ReadTuple _parseLeer() {
     final inicio = _actual;
-    _avanzar(); // Saltar "LEER", "Leer" o "leer"
+    _avanzar();
 
     if (_fin || !_esTipoActual(TipoToken.identificador)) {
       throw SyntaxException(
@@ -213,20 +196,14 @@ class ParserManager {
     return ReadTuple(lineaID: inicio.linea, variable: nombre);
   }
 
-  /// ----------------------------------------------------
-  /// PARSEAR ESCRIBIR:   Escribir valor
-  /// ----------------------------------------------------
   WriteTuple _parseEscribir() {
     final inicio = _actual;
-    _avanzar(); // Saltar "ESCRIBIR", "Escribir" o "escribir"
+    _avanzar();
     final expr = _capturarHastaFinLinea();
 
     return WriteTuple(lineaID: inicio.linea, valor: expr);
   }
 
-  /// ----------------------------------------------------
-  /// PARSEAR SI - ENTONCES - SINO - FINSI
-  /// ----------------------------------------------------
   CompareTuple _parseSi() {
     final inicio = _consumirLexema("Si");
     final condicion = _capturarHastaLexema("Entonces");
@@ -272,7 +249,6 @@ class ParserManager {
   }
 
   Tuple _parseRepite() {
-    // Acepta Repite, mientras, Mientras, MIENTRAS
     Token inicio;
     bool esMientras = false;
 
@@ -291,7 +267,6 @@ class ParserManager {
       throw SyntaxException("Se esperaba MIENTRAS o REPITE", _lineaActual);
     }
 
-    // Si es MIENTRAS, capturar la condición hasta HACER
     if (esMientras) {
       final condicion = _capturarHastaLexema("HACER");
 
@@ -299,7 +274,6 @@ class ParserManager {
         _consumirLexema(_actual.lexema);
       }
 
-      // Buscar el comparador en la condición
       final comparadorIdx = condicion.indexWhere(
         (token) => token.tipo == TipoToken.comparador,
       );
@@ -321,9 +295,8 @@ class ParserManager {
         );
       }
 
-      // Usar lineaID negativo especial para marcar como MIENTRAS
       return CompareTuple(
-        lineaID: -5000, // Marca especial para MIENTRAS
+        lineaID: -5000,
         izquierda: List<Token>.from(izquierda),
         operador: condicion[comparadorIdx].lexema,
         derecha: List<Token>.from(derecha),
@@ -334,7 +307,6 @@ class ParserManager {
   }
 
   Tuple _parseFinRepite() {
-    // Acepta FinRepite, fin-mientras, FinMientras, FINMIENTRAS
     if (_esLexema("FinRepite")) {
       _consumirLexema("FinRepite");
     } else if (_esLexema("fin-mientras")) {
@@ -438,9 +410,6 @@ class ParserManager {
     return EndTuple(lineaID: token.linea);
   }
 
-  /// ----------------------------------------------------
-  /// VALIDACIÓN RÁPIDA DE SINTAXIS
-  /// ----------------------------------------------------
   void validarSintaxis(List<Token> tokens) {
     final pila = <_Bloque>[];
 
@@ -489,9 +458,6 @@ class ParserManager {
     }
   }
 
-  // -----------------------------------------------------
-  // Helpers internos
-  // -----------------------------------------------------
   void _cerrarBloque(List<_Bloque> pila, _BloqueTipo tipo, Token token) {
     if (pila.isEmpty || pila.last.tipo != tipo) {
       throw SyntaxException("Fin${tipo.nombre} sin apertura", token.linea);

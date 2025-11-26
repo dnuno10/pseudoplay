@@ -66,14 +66,13 @@ class _MenuViewState extends ConsumerState<MenuView>
 
     final padding = w * 0.06;
     final spacing = h * 0.02;
-    final cardHeight = h * 0.28; // MÁS ALTO PARA QUE NADA SE TAPE
+    final cardHeight = h * 0.28;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF4EEDB),
       body: SafeArea(
         child: Stack(
           children: [
-            // Textura retro lineal
             Positioned.fill(
               child: CustomPaint(painter: _RetroTexturePainter()),
             ),
@@ -105,7 +104,6 @@ class _MenuViewState extends ConsumerState<MenuView>
               ),
             ),
 
-            // CRT Scanlines
             Positioned.fill(
               child: IgnorePointer(
                 child: AnimatedBuilder(
@@ -202,9 +200,6 @@ class _MenuViewState extends ConsumerState<MenuView>
     );
   }
 
-  // ------------------------------------------------------------
-  // HEADER
-  // ------------------------------------------------------------
   Widget _buildHeader(double w) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -218,9 +213,6 @@ class _MenuViewState extends ConsumerState<MenuView>
     );
   }
 
-  // ------------------------------------------------------------
-  // USER BAR — overflow FIXED
-  // ------------------------------------------------------------
   Widget _buildUserBar(
     double w,
     double h,
@@ -303,9 +295,6 @@ class _MenuViewState extends ConsumerState<MenuView>
     );
   }
 
-  // ------------------------------------------------------------
-  // ROW CARDS
-  // ------------------------------------------------------------
   Widget _buildCardsRow(
     BuildContext context,
     double w,
@@ -372,9 +361,6 @@ class _MenuViewState extends ConsumerState<MenuView>
     );
   }
 
-  // ------------------------------------------------------------
-  // RETRO CARD — FINAL, SIN OVERFLOW, SIN TAPE
-  // ------------------------------------------------------------
   Widget _retroCard(
     BuildContext context, {
     required double w,
@@ -405,7 +391,6 @@ class _MenuViewState extends ConsumerState<MenuView>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          /// TÍTULO
           Text(
             title.toUpperCase(),
             maxLines: 2,
@@ -419,7 +404,6 @@ class _MenuViewState extends ConsumerState<MenuView>
 
           SizedBox(height: h * 0.008),
 
-          /// DESCRIPCIÓN (no se tapa jamás)
           Expanded(
             child: Text(
               subtitle,
@@ -435,7 +419,6 @@ class _MenuViewState extends ConsumerState<MenuView>
 
           SizedBox(height: h * 0.012),
 
-          /// BOTÓN — SIEMPRE LIBRE
           Align(
             alignment: Alignment.bottomCenter,
             child: GestureDetector(
@@ -472,9 +455,6 @@ class _MenuViewState extends ConsumerState<MenuView>
     );
   }
 
-  // ------------------------------------------------------------
-  // STATS
-  // ------------------------------------------------------------
   Widget _buildStats(
     double w,
     double h,
@@ -546,9 +526,6 @@ class _MenuViewState extends ConsumerState<MenuView>
   }
 }
 
-// ============================================================
-// TEXTURA RETRO LINEAL
-// ============================================================
 class _RetroTexturePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
@@ -565,9 +542,6 @@ class _RetroTexturePainter extends CustomPainter {
   bool shouldRepaint(_RetroTexturePainter oldDelegate) => false;
 }
 
-// ============================================================
-// CRT SCANLINES
-// ============================================================
 class _ScanlinePainter extends CustomPainter {
   final double progress;
 

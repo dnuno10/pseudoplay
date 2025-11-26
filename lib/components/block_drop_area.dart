@@ -46,9 +46,6 @@ class BlockDropArea extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // -----------------------------------------------------
-              // TOP HEADER BAR
-              // -----------------------------------------------------
               Row(
                 children: [
                   Expanded(
@@ -123,9 +120,6 @@ class BlockDropArea extends StatelessWidget {
 
               const SizedBox(height: 16),
 
-              // -----------------------------------------------------
-              // LISTA VERTICAL — Scroll interno para evitar overflow
-              // -----------------------------------------------------
               Container(
                 constraints: BoxConstraints(
                   minHeight: 120,
@@ -154,9 +148,6 @@ class BlockDropArea extends StatelessWidget {
     );
   }
 
-  // ------------------------------------------------------------
-  // GRID vacío retro tipo consola (MUY más visual)
-  // ------------------------------------------------------------
   Widget _buildEmptyGrid() {
     return const Column(
       mainAxisAlignment: MainAxisAlignment.center,
@@ -188,9 +179,6 @@ class BlockDropArea extends StatelessWidget {
     );
   }
 
-  // ------------------------------------------------------------
-  // LISTA VERTICAL DE BLOQUES (crece con el contenido)
-  // ------------------------------------------------------------
   Widget _buildBlockList() {
     return Column(
       key: const ValueKey('block-list'),
@@ -237,7 +225,6 @@ class BlockDropArea extends StatelessWidget {
         ),
         child: Row(
           children: [
-            // Número de bloque
             Container(
               width: 32,
               height: 32,
@@ -258,7 +245,6 @@ class BlockDropArea extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 12),
-            // Texto del bloque
             Expanded(
               child: Text(
                 block.display,

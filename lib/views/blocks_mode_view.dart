@@ -164,19 +164,13 @@ class _BlocksModeViewState extends ConsumerState<BlocksModeView>
       backgroundColor: const Color(0xFFF4EEDB),
       body: Stack(
         children: [
-          // Textura retro
           Positioned.fill(child: CustomPaint(painter: _RetroTexturePainter())),
 
           _scanlines(w, h),
 
           SafeArea(
             child: SingleChildScrollView(
-              padding: EdgeInsets.fromLTRB(
-                w * 0.06,
-                h * 0.01,
-                w * 0.06,
-                100, // Espacio para el botón flotante
-              ),
+              padding: EdgeInsets.fromLTRB(w * 0.06, h * 0.01, w * 0.06, 100),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -197,7 +191,6 @@ class _BlocksModeViewState extends ConsumerState<BlocksModeView>
 
                   SizedBox(height: h * 0.02),
 
-                  // Contenido scrolleable
                   isWide
                       ? Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -227,7 +220,6 @@ class _BlocksModeViewState extends ConsumerState<BlocksModeView>
             ),
           ),
 
-          // Botón flotante de convertir
           Positioned(
             bottom: 20,
             left: w * 0.06,
@@ -239,7 +231,6 @@ class _BlocksModeViewState extends ConsumerState<BlocksModeView>
     );
   }
 
-  // CRT Layer
   Widget _scanlines(double w, double h) {
     return AnimatedBuilder(
       animation: _crtController,
@@ -252,7 +243,6 @@ class _BlocksModeViewState extends ConsumerState<BlocksModeView>
     );
   }
 
-  // Header retro
   Widget _header(double w) {
     return GestureDetector(
       onTap: () => context.go('/menu'),
@@ -272,7 +262,6 @@ class _BlocksModeViewState extends ConsumerState<BlocksModeView>
     );
   }
 
-  // Tabs retro arcade
   Widget _tabsRetro(double w, double h) {
     return Container(
       padding: EdgeInsets.all(w * 0.015),
@@ -312,7 +301,6 @@ class _BlocksModeViewState extends ConsumerState<BlocksModeView>
     );
   }
 
-  // Palette block panel
   Widget _paletteView(double w, double h) {
     final tab = _categorias[_tabs.index];
     final items = _paleta[tab]!;
@@ -343,7 +331,6 @@ class _BlocksModeViewState extends ConsumerState<BlocksModeView>
     );
   }
 
-  // Drop zone (retro terminal)
   Widget _dropZone(double w, double h, List<BlockModel> blocks) {
     return BlockDropArea(
       w: w,
@@ -409,7 +396,6 @@ class _BlocksModeViewState extends ConsumerState<BlocksModeView>
           return;
         }
 
-        // Construir display descriptivo
         String display = _buildDisplayText(item.id, data);
 
         ref
@@ -419,7 +405,6 @@ class _BlocksModeViewState extends ConsumerState<BlocksModeView>
     );
   }
 
-  /// Construye texto descriptivo para cada bloque
   String _buildDisplayText(String tipo, Map<String, dynamic>? data) {
     switch (tipo) {
       case 'variable':
@@ -445,7 +430,6 @@ class _BlocksModeViewState extends ConsumerState<BlocksModeView>
     }
   }
 
-  // Button flotante retro arcade
   Widget _convertButtonFloating(double w, double h, bool enabled) {
     return GestureDetector(
       onTap: enabled ? _convert : null,
@@ -501,9 +485,6 @@ class _BlocksModeViewState extends ConsumerState<BlocksModeView>
   }
 }
 
-// ============================================================
-// TEXTURA RETRO LINEAL
-// ============================================================
 class _RetroTexturePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
@@ -520,9 +501,6 @@ class _RetroTexturePainter extends CustomPainter {
   bool shouldRepaint(_RetroTexturePainter oldDelegate) => false;
 }
 
-// ------------------------------------------------------------
-// SCANLINE PAINTER
-// ------------------------------------------------------------
 class _ScanlinePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {

@@ -84,12 +84,10 @@ class _SplashScreenViewState extends ConsumerState<SplashScreenView>
         children: [
           Positioned.fill(child: CustomPaint(painter: _RetroTexturePainter())),
 
-          // Contenido
           Center(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                /// LOGO — SIN CONTENEDORES
                 Image.asset(
                   "assets/images/pseudoplay_logo.png",
                   width: w * 0.58,
@@ -97,13 +95,11 @@ class _SplashScreenViewState extends ConsumerState<SplashScreenView>
 
                 SizedBox(height: h * 0.04),
 
-                /// BARRA PROGRESIVA ESTILO MENU
                 _RetroProgressBar(controller: _progressController, w: w, h: h),
               ],
             ),
           ),
 
-          // SCANLINES CRT
           Positioned.fill(
             child: IgnorePointer(
               child: AnimatedBuilder(
@@ -122,10 +118,6 @@ class _SplashScreenViewState extends ConsumerState<SplashScreenView>
   }
 }
 
-//
-// -----------------------------------------------------------
-// RETRO PROGRESS BAR — GRANDE COMO EN MENU
-// -----------------------------------------------------------
 class _RetroProgressBar extends StatelessWidget {
   final AnimationController controller;
   final double w;
@@ -139,7 +131,7 @@ class _RetroProgressBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final height = h * 0.065; // GRANDE como en menú
+    final height = h * 0.065;
     final border = w * 0.012;
 
     return AnimatedBuilder(
@@ -180,10 +172,6 @@ class _RetroProgressBar extends StatelessWidget {
   }
 }
 
-//
-// -----------------------------------------------------------
-// SCANLINES CRT
-// -----------------------------------------------------------
 class _CRTScanlines extends CustomPainter {
   final double progress;
   _CRTScanlines({required this.progress});
@@ -203,10 +191,6 @@ class _CRTScanlines extends CustomPainter {
   bool shouldRepaint(_) => true;
 }
 
-//
-// -----------------------------------------------------------
-// TEXTURA RETRO BASE
-// -----------------------------------------------------------
 class _RetroTexturePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
@@ -223,10 +207,6 @@ class _RetroTexturePainter extends CustomPainter {
   bool shouldRepaint(_) => false;
 }
 
-//
-// -----------------------------------------------------------
-// LINEAS DENTRO DE PROGRESS BAR
-// -----------------------------------------------------------
 class _ProgressLines extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {

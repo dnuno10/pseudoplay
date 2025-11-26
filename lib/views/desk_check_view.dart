@@ -46,10 +46,8 @@ class _DeskCheckViewState extends ConsumerState<DeskCheckView>
       backgroundColor: const Color(0xFFF4EEDB),
       body: Stack(
         children: [
-          // TEXTURA RETRO
           Positioned.fill(child: CustomPaint(painter: _RetroTexturePainter())),
 
-          // CRT SCANLINES
           IgnorePointer(
             child: AnimatedBuilder(
               animation: _crtController,
@@ -149,7 +147,6 @@ class _DeskCheckViewState extends ConsumerState<DeskCheckView>
         ),
         child: Column(
           children: [
-            // ENCABEZADO DE LA TABLA
             Container(
               padding: EdgeInsets.symmetric(
                 vertical: h * 0.015,
@@ -170,7 +167,6 @@ class _DeskCheckViewState extends ConsumerState<DeskCheckView>
                 ],
               ),
             ),
-            // FILAS DE DATOS
             Expanded(
               child: ListView.builder(
                 controller: _scrollController,
@@ -287,17 +283,14 @@ class _DeskCheckViewState extends ConsumerState<DeskCheckView>
     final currentOffset = _scrollController.offset;
     final viewportHeight = _scrollController.position.viewportDimension;
 
-    // Calcula la posición del paso actual
     final pasoOffset = paso * itemHeight;
     final pasoEnd = pasoOffset + itemHeight;
 
-    // Solo hace scroll si el paso no es visible
     final isVisible =
         pasoOffset >= currentOffset &&
         pasoEnd <= currentOffset + viewportHeight;
 
     if (!isVisible) {
-      // Centra el paso en la vista
       final targetOffset = (pasoOffset - viewportHeight / 2 + itemHeight / 2)
           .clamp(0.0, _scrollController.position.maxScrollExtent);
 
@@ -330,7 +323,6 @@ class _DeskCheckViewState extends ConsumerState<DeskCheckView>
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          // BOTÓN ANTERIOR - Solo icono
           GestureDetector(
             onTap: _pasoActual > 0
                 ? () {
@@ -354,7 +346,6 @@ class _DeskCheckViewState extends ConsumerState<DeskCheckView>
             ),
           ),
 
-          // PASO ACTUAL
           Text(
             '${_pasoActual + 1} / $maxPasos',
             style: AppTextStyles.title.copyWith(
@@ -363,7 +354,6 @@ class _DeskCheckViewState extends ConsumerState<DeskCheckView>
             ),
           ),
 
-          // BOTÓN SIGUIENTE - Solo icono
           GestureDetector(
             onTap: _pasoActual < maxPasos - 1
                 ? () {
@@ -392,9 +382,6 @@ class _DeskCheckViewState extends ConsumerState<DeskCheckView>
   }
 }
 
-// ============================================================
-// TEXTURA RETRO LINEAL
-// ============================================================
 class _RetroTexturePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
@@ -411,9 +398,6 @@ class _RetroTexturePainter extends CustomPainter {
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
-// ============================================================
-// CRT SCANLINES
-// ============================================================
 class _ScanlinePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {

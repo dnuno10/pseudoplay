@@ -140,7 +140,6 @@ class BlockDialogs {
             return;
           }
 
-          // Validar expresión: solo variables declaradas, números o texto entre ""
           final exprValidation = _validateExpression(
             expresion.text,
             declaredVars,
@@ -276,7 +275,6 @@ class BlockDialogs {
             return;
           }
 
-          // Validar expresión
           final exprValidation = _validateExpression(valor.text, declaredVars);
           if (!exprValidation['valid']) {
             _showError(context, exprValidation['error']);
@@ -352,7 +350,6 @@ class BlockDialogs {
             return;
           }
 
-          // Validar condición: solo variables declaradas y números
           final condValidation = _validateCondition(txt.text, declaredVars);
           if (!condValidation['valid']) {
             _showError(context, condValidation['error']);
@@ -408,19 +405,16 @@ class BlockDialogs {
     );
   }
 
-  /// Valida expresiones: solo variables declaradas, números o texto entre ""
   static Map<String, dynamic> _validateExpression(
     String expr,
     List<String> declaredVars,
   ) {
     expr = expr.trim();
 
-    // Si está entre comillas dobles, es texto válido
     if (expr.startsWith('"') && expr.endsWith('"')) {
       return {'valid': true};
     }
 
-    // Verificar si hay comillas mal balanceadas
     if (expr.contains('"')) {
       return {
         'valid': false,
@@ -428,7 +422,6 @@ class BlockDialogs {
       };
     }
 
-    // Remover operadores y espacios para obtener tokens
     final tokens = expr
         .replaceAll(RegExp(r'[+\-*/()=<>!]'), ' ')
         .split(RegExp(r'\s+'))
@@ -436,15 +429,13 @@ class BlockDialogs {
         .toList();
 
     for (final token in tokens) {
-      // Si es número, válido
       if (double.tryParse(token) != null) continue;
 
-      // Todo lo demás debe ser una variable declarada
       if (!declaredVars.contains(token)) {
         return {
           'valid': false,
           'error':
-              '❌ "$token" no es una variable declarada.\n\n💡 Si es texto, usa: "$token"\n💡 Si es variable, decláral primero',
+              '"$token" no es una variable declarada.\n\nSi es texto, usa: "$token"\nSi es variable, decláral primero',
         };
       }
     }
@@ -452,14 +443,12 @@ class BlockDialogs {
     return {'valid': true};
   }
 
-  /// Valida condiciones: solo variables declaradas y números
   static Map<String, dynamic> _validateCondition(
     String cond,
     List<String> declaredVars,
   ) {
     cond = cond.trim();
 
-    // Verificar que tenga operador de comparación
     final operators = ['==', '!=', '>=', '<=', '>', '<'];
     if (!operators.any((op) => cond.contains(op))) {
       return {
@@ -468,7 +457,6 @@ class BlockDialogs {
       };
     }
 
-    // Remover operadores y espacios para obtener tokens
     final tokens = cond
         .replaceAll(RegExp(r'[+\-*/()=<>!]'), ' ')
         .split(RegExp(r'\s+'))
@@ -476,10 +464,8 @@ class BlockDialogs {
         .toList();
 
     for (final token in tokens) {
-      // Si es número, válido
       if (double.tryParse(token) != null) continue;
 
-      // Si no es variable declarada, error
       if (!declaredVars.contains(token)) {
         return {
           'valid': false,
@@ -503,9 +489,6 @@ class BlockDialogs {
   }
 }
 
-// ============================================================
-// RETRO DIALOG WIDGET
-// ============================================================
 class _RetroDialog extends StatelessWidget {
   final String title;
   final Widget content;
@@ -535,7 +518,6 @@ class _RetroDialog extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // HEADER
             Container(
               width: double.infinity,
               padding: EdgeInsets.all(w * 0.04),
@@ -555,12 +537,10 @@ class _RetroDialog extends StatelessWidget {
               ),
             ),
 
-            // CONTENT
             Flexible(
               child: Padding(padding: EdgeInsets.all(w * 0.05), child: content),
             ),
 
-            // BUTTONS
             Container(
               padding: EdgeInsets.all(w * 0.04),
               decoration: const BoxDecoration(
@@ -593,9 +573,6 @@ class _RetroDialog extends StatelessWidget {
   }
 }
 
-// ============================================================
-// RETRO TEXT FIELD
-// ============================================================
 class _RetroTextField extends StatelessWidget {
   final TextEditingController controller;
   final String label;
@@ -647,9 +624,6 @@ class _RetroTextField extends StatelessWidget {
   }
 }
 
-// ============================================================
-// RETRO BUTTON
-// ============================================================
 class _RetroButton extends StatelessWidget {
   final String label;
   final Color color;
@@ -686,9 +660,6 @@ class _RetroButton extends StatelessWidget {
   }
 }
 
-// ============================================================
-// VARIABLE CHIPS - Mostrar variables declaradas
-// ============================================================
 class _VariableChips extends StatelessWidget {
   final List<String> variables;
   final void Function(String)? onSelect;

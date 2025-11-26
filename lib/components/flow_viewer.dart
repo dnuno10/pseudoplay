@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/block_model.dart';
 
-/// Modal retro 8-bit para visualizar todo el flujo de bloques con detalles completos
 class FlowViewer extends StatefulWidget {
   final List<BlockModel> blocks;
   final Color Function(BlockModel)? colorBuilder;
@@ -57,10 +56,9 @@ class _FlowViewerState extends State<FlowViewer>
       ),
       child: Stack(
         children: [
-          // Contenedor principal RETRO
           Container(
             decoration: BoxDecoration(
-              color: const Color(0xFFF4EEDB), // Fondo beige retro
+              color: const Color(0xFFF4EEDB),
               border: Border.all(width: 5, color: Colors.black),
               boxShadow: [
                 BoxShadow(
@@ -72,16 +70,12 @@ class _FlowViewerState extends State<FlowViewer>
             ),
             child: Column(children: [_buildHeader(w), _buildBody(w, h)]),
           ),
-          // CRT Scanlines
           _buildScanlines(w, h),
         ],
       ),
     );
   }
 
-  // ============================================================
-  // HEADER RETRO ARCADE
-  // ============================================================
   Widget _buildHeader(double w) {
     return Container(
       padding: const EdgeInsets.all(20),
@@ -127,9 +121,6 @@ class _FlowViewerState extends State<FlowViewer>
     );
   }
 
-  // ============================================================
-  // BODY - LISTA DE BLOQUES CON DETALLES
-  // ============================================================
   Widget _buildBody(double w, double h) {
     if (widget.blocks.isEmpty) {
       return Expanded(
@@ -167,7 +158,7 @@ class _FlowViewerState extends State<FlowViewer>
 
     return Expanded(
       child: Container(
-        color: const Color(0xFFE8DCC0), // Fondo más oscuro para contraste
+        color: const Color(0xFFE8DCC0),
         padding: const EdgeInsets.all(20),
         child: ListView.separated(
           physics: const BouncingScrollPhysics(),
@@ -185,9 +176,6 @@ class _FlowViewerState extends State<FlowViewer>
     );
   }
 
-  // ============================================================
-  // TARJETA DE BLOQUE CON DETALLES COMPLETOS
-  // ============================================================
   Widget _buildBlockCard(
     BlockModel block,
     int number,
@@ -212,7 +200,6 @@ class _FlowViewerState extends State<FlowViewer>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header del bloque con número
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               decoration: BoxDecoration(
@@ -257,7 +244,6 @@ class _FlowViewerState extends State<FlowViewer>
                 ],
               ),
             ),
-            // Detalles del bloque
             Padding(
               padding: const EdgeInsets.all(16),
               child: _buildBlockDetails(block),
@@ -268,9 +254,6 @@ class _FlowViewerState extends State<FlowViewer>
     );
   }
 
-  // ============================================================
-  // DETALLES COMPLETOS DEL BLOQUE
-  // ============================================================
   Widget _buildBlockDetails(BlockModel block) {
     switch (block.tipo) {
       case 'variable':
@@ -393,9 +376,6 @@ class _FlowViewerState extends State<FlowViewer>
     );
   }
 
-  // ============================================================
-  // HELPERS
-  // ============================================================
   String _getBlockTitle(String tipo) {
     switch (tipo) {
       case 'variable':
@@ -437,9 +417,6 @@ class _FlowViewerState extends State<FlowViewer>
     return level;
   }
 
-  // ============================================================
-  // CRT SCANLINES ANIMADAS
-  // ============================================================
   Widget _buildScanlines(double w, double h) {
     return Positioned.fill(
       child: IgnorePointer(
@@ -456,9 +433,6 @@ class _FlowViewerState extends State<FlowViewer>
   }
 }
 
-// ============================================================
-// PAINTER PARA SCANLINES CRT
-// ============================================================
 class _ScanlinePainter extends CustomPainter {
   final double progress;
 

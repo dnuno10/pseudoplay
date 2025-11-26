@@ -13,23 +13,18 @@ class InterpreterManager {
 
   List<Tuple> instrucciones = [];
 
-  /// Cargar tuplas generadas
   void cargarPrograma(List<Tuple> tuplas) {
     instrucciones = tuplas;
     estado.reset();
   }
 
-  /// Ejecutar un paso
   void ejecutarPaso() {
     if (estado.lineaActual >= instrucciones.length) {
-      return; // Programa finalizado
+      return;
     }
 
     final Tuple t = instrucciones[estado.lineaActual];
 
-    // NO registrar línea en consola
-
-    // Ejecutar según tipo
     if (t is AssignTuple) {
       _ejecutarAsignacion(t);
     } else if (t is ReadTuple) {
@@ -38,18 +33,17 @@ class InterpreterManager {
       _ejecutarEscribir(t);
     } else if (t is CompareTuple) {
       _ejecutarComparacion(t);
-      return; // Ya manejó el salto de flujo
+      return;
     } else if (t is FunctionEntryTuple) {
       _ejecutarFunctionEntry(t);
-      return; // Ya manejó el salto de flujo
+      return;
     } else if (t is FunctionEndTuple) {
       _ejecutarFunctionEnd(t);
-      return; // Ya manejó el salto de flujo
+      return;
     } else if (t is FunctionCallTuple) {
       _ejecutarFunctionCall(t);
-      return; // Ya manejó el salto de flujo
+      return;
     } else if (t is EndTuple) {
-      // NO registrar en consola, solo en desk check
       estado.registrarPaso(
         linea: "Línea ${t.lineaID}",
         variables: tablaSimbolos.mapaVariables,
@@ -60,7 +54,6 @@ class InterpreterManager {
       estado.lineaActual = instrucciones.length;
       return;
     } else if (t.saltoVerdadero != null) {
-      // Tuple genérico con salto (FinMientras, FinRepite, Sino)
       estado.lineaActual = t.saltoVerdadero!;
       return;
     }
@@ -68,9 +61,6 @@ class InterpreterManager {
     estado.lineaActual++;
   }
 
-  /// ----------------------------------------------------
-  /// ASIGNACIÓN
-  /// ----------------------------------------------------
   void _ejecutarAsignacion(AssignTuple t) {
     print(
       '[ASIGNACIÓN] Variable: ${t.variable}, lineaActual: ${estado.lineaActual}',
@@ -80,7 +70,6 @@ class InterpreterManager {
     tablaSimbolos.actualizar(t.variable, valor);
     print('[ASIGNACIÓN] Tabla después: ${tablaSimbolos.mapaVariables}');
 
-    // NO registrar en consola, solo en paso de escritorio
     estado.registrarPaso(
       linea: "Línea ${t.lineaID}",
       variables: tablaSimbolos.mapaVariables,
@@ -90,20 +79,13 @@ class InterpreterManager {
     );
   }
 
-  /// ----------------------------------------------------
-  /// LEER VARIABLE (solicita input)
-  /// El valor ya debe estar en la tabla de símbolos (asignado por execution_controller)
-  /// Este método solo registra el paso
-  /// ----------------------------------------------------
   void _ejecutarLeer(ReadTuple t) {
-    // Obtener el valor actual de la variable (ya asignado por continuarConInput)
     final simbolo = tablaSimbolos.obtener(t.variable);
     final valor = simbolo?.valor ?? 0;
 
     print('[LEER] Variable: ${t.variable}, Valor actual en tabla: $valor');
     print('[LEER] Tabla completa: ${tablaSimbolos.mapaVariables}');
 
-    // NO registrar en consola, solo en paso de escritorio
     estado.registrarPaso(
       linea: "Línea ${t.lineaID}",
       variables: tablaSimbolos.mapaVariables,
@@ -113,9 +95,6 @@ class InterpreterManager {
     );
   }
 
-  /// ----------------------------------------------------
-  /// ESCRIBIR
-  /// ----------------------------------------------------
   void _ejecutarEscribir(WriteTuple t) {
     final salida = _evaluarSalida(t.valor);
     estado.registrarSalida(salida);
@@ -154,9 +133,6 @@ class InterpreterManager {
     return partes.join(' ').trimRight();
   }
 
-  /// ----------------------------------------------------
-  /// COMPARACIÓN (Si ... Entonces ...)
-  /// ----------------------------------------------------
   void _ejecutarComparacion(CompareTuple t) {
     final resultado = _evaluarComparacion(t);
 
@@ -175,11 +151,7 @@ class InterpreterManager {
     );
   }
 
-  /// ----------------------------------------------------
-  /// ENTRADA A FUNCIÓN
-  /// ----------------------------------------------------
   void _ejecutarFunctionEntry(FunctionEntryTuple t) {
-    // Saltar al final de la función (no ejecutarla hasta que sea llamada)
     estado.lineaActual = t.saltoVerdadero ?? estado.lineaActual + 1;
 
     estado.registrarPaso(
@@ -191,12 +163,7 @@ class InterpreterManager {
     );
   }
 
-  /// ----------------------------------------------------
-  /// FIN DE FUNCIÓN
-  /// ----------------------------------------------------
   void _ejecutarFunctionEnd(FunctionEndTuple t) {
-    // Retornar al punto después de la llamada
-    // (esto será manejado por la pila de llamadas)
     estado.lineaActual++;
 
     estado.registrarPaso(
@@ -208,11 +175,7 @@ class InterpreterManager {
     );
   }
 
-  /// ----------------------------------------------------
-  /// LLAMADA A FUNCIÓN
-  /// ----------------------------------------------------
   void _ejecutarFunctionCall(FunctionCallTuple t) {
-    // Buscar la función en las instrucciones
     int funcionInicio = -1;
     int funcionFin = -1;
     FunctionEntryTuple? definicion;
@@ -221,14 +184,13 @@ class InterpreterManager {
       final inst = instrucciones[i];
       if (inst is FunctionEntryTuple && inst.nombre == t.nombre) {
         definicion = inst;
-        funcionInicio = i + 1; // Después de FunctionEntry
+        funcionInicio = i + 1;
         funcionFin = inst.saltoVerdadero ?? instrucciones.length;
         break;
       }
     }
 
     if (funcionInicio == -1 || definicion == null) {
-      // Función no encontrada
       estado.lineaActual++;
       return;
     }
@@ -263,17 +225,14 @@ class InterpreterManager {
       tablaSimbolos.actualizar(nombreParametro, valorAsignado);
     }
 
-    // Guardar el punto de retorno
     final puntoRetorno = estado.lineaActual + 1;
 
     print('[FUNCIÓN CALL] Llamando a ${t.nombre}');
     print('[FUNCIÓN CALL] Variables antes: ${tablaSimbolos.mapaVariables}');
     print('[FUNCIÓN CALL] Inicio: $funcionInicio, Fin: $funcionFin');
 
-    // Ejecutar el cuerpo de la función
     estado.lineaActual = funcionInicio;
 
-    // Ejecutar instrucciones hasta FunctionEnd
     while (estado.lineaActual < funcionFin) {
       final inst = instrucciones[estado.lineaActual];
 
@@ -285,7 +244,6 @@ class InterpreterManager {
         '[FUNCIÓN] Ejecutando instrucción en línea ${estado.lineaActual}: ${inst.runtimeType}',
       );
 
-      // Ejecutar la instrucción actual
       if (inst is AssignTuple) {
         print('[FUNCIÓN] Asignando ${inst.variable} = ${inst.expresion}');
         _ejecutarAsignacion(inst);
@@ -299,20 +257,15 @@ class InterpreterManager {
         estado.lineaActual++;
       } else if (inst is CompareTuple) {
         _ejecutarComparacion(inst);
-        // No incrementar, _ejecutarComparacion ya maneja el salto
       } else if (inst is FunctionCallTuple) {
-        // Llamada recursiva a función
         _ejecutarFunctionCall(inst);
-        // No incrementar, _ejecutarFunctionCall ya maneja el salto
       } else if (inst.saltoVerdadero != null) {
-        // Tuple genérico con salto (Sino, FinMientras, etc.)
         estado.lineaActual = inst.saltoVerdadero!;
       } else {
         estado.lineaActual++;
       }
     }
 
-    // Retornar al punto después de la llamada
     estado.lineaActual = puntoRetorno;
 
     for (final nombreParametro in parametros.reversed) {
@@ -338,9 +291,6 @@ class InterpreterManager {
     );
   }
 
-  /// ----------------------------------------------------
-  /// EVALUAR COMPARACIÓN
-  /// ----------------------------------------------------
   bool _evaluarComparacion(CompareTuple t) {
     final izquierda = _evaluarExpresion(t.izquierda);
     final derecha = _evaluarExpresion(t.derecha);
@@ -363,25 +313,19 @@ class InterpreterManager {
     return false;
   }
 
-  /// ----------------------------------------------------
-  /// EVALUAR EXPRESIÓN (como en PseudoInterprete.java)
-  /// ----------------------------------------------------
   dynamic _evaluarExpresion(List<Token>? expr) {
     if (expr == null || expr.isEmpty) return null;
 
     print('[EVALUAR] Expresión: ${expr.map((t) => t.lexema).join(" ")}');
 
-    // Caso literal simple
     if (expr.length == 1) {
       final valor = _resolverValor(expr.first);
       print('[EVALUAR] Valor simple: $valor');
       return valor;
     }
 
-    // Primero: evaluar paréntesis internos recursivamente
     List<Token> tokensConParentesisResueltos = _evaluarParentesis(expr);
 
-    // Evaluar operación simple: a + b, a - b, etc.
     if (tokensConParentesisResueltos.length == 3) {
       final izquierda = _resolverValor(tokensConParentesisResueltos[0]);
       final op = tokensConParentesisResueltos[1].lexema;
@@ -393,16 +337,11 @@ class InterpreterManager {
       return resultado;
     }
 
-    // Evaluar expresión compleja con múltiples operadores
-    // Respetar precedencia: primero * y /, luego + y -
-
-    // Primero: multiplicación, división y módulo (izquierda a derecha)
     int i = 0;
     while (i < tokensConParentesisResueltos.length) {
       if (tokensConParentesisResueltos[i].lexema == '*' ||
           tokensConParentesisResueltos[i].lexema == '/' ||
           tokensConParentesisResueltos[i].lexema == '%') {
-        // i es el operador, i-1 es izquierda, i+1 es derecha
         if (i > 0 && i < tokensConParentesisResueltos.length - 1) {
           final izq = _resolverValor(tokensConParentesisResueltos[i - 1]);
           final op = tokensConParentesisResueltos[i].lexema;
@@ -411,7 +350,6 @@ class InterpreterManager {
           final resultado = _operar(izq, op, der);
           print('[EVALUAR] Operación parcial: $izq $op $der = $resultado');
 
-          // Reemplazar los 3 tokens (izq, op, der) con el resultado
           tokensConParentesisResueltos.removeRange(i - 1, i + 2);
           tokensConParentesisResueltos.insert(
             i - 1,
@@ -422,7 +360,7 @@ class InterpreterManager {
               columna: 0,
             ),
           );
-          i = 0; // Reiniciar desde el principio
+          i = 0;
         } else {
           i++;
         }
@@ -431,7 +369,6 @@ class InterpreterManager {
       }
     }
 
-    // Segundo: suma y resta (izquierda a derecha)
     i = 0;
     while (i < tokensConParentesisResueltos.length) {
       if (tokensConParentesisResueltos[i].lexema == '+' ||
@@ -444,7 +381,6 @@ class InterpreterManager {
           final resultado = _operar(izq, op, der);
           print('[EVALUAR] Operación parcial: $izq $op $der = $resultado');
 
-          // Reemplazar los 3 tokens (izq, op, der) con el resultado
           tokensConParentesisResueltos.removeRange(i - 1, i + 2);
           tokensConParentesisResueltos.insert(
             i - 1,
@@ -455,7 +391,7 @@ class InterpreterManager {
               columna: 0,
             ),
           );
-          i = 0; // Reiniciar desde el principio
+          i = 0;
         } else {
           i++;
         }
@@ -471,11 +407,7 @@ class InterpreterManager {
     return resultadoFinal;
   }
 
-  /// ----------------------------------------------------
-  /// EVALUAR PARÉNTESIS: evalúa expresiones dentro de paréntesis recursivamente
-  /// ----------------------------------------------------
   List<Token> _evaluarParentesis(List<Token> tokens) {
-    // Buscar el paréntesis más interno (de izquierda a derecha)
     int profundidadMax = 0;
     int profundidadActual = 0;
     int inicioParentesis = -1;
@@ -497,16 +429,13 @@ class InterpreterManager {
       }
     }
 
-    // Si no hay paréntesis, devolver los tokens tal cual
     if (inicioParentesis == -1 || finParentesis == -1) {
       return tokens;
     }
 
-    // Evaluar la expresión dentro del paréntesis más interno
     final tokensInternos = tokens.sublist(inicioParentesis + 1, finParentesis);
     final resultadoInterno = _evaluarExpresion(tokensInternos);
 
-    // Crear token con el resultado
     final tokenResultado = Token(
       tipo: TipoToken.numero,
       lexema: resultadoInterno.toString(),
@@ -514,22 +443,16 @@ class InterpreterManager {
       columna: 0,
     );
 
-    // Reemplazar el paréntesis y su contenido con el resultado
     final nuevosTokens = <Token>[
       ...tokens.sublist(0, inicioParentesis),
       tokenResultado,
       ...tokens.sublist(finParentesis + 1),
     ];
 
-    // Continuar evaluando paréntesis restantes recursivamente
     return _evaluarParentesis(nuevosTokens);
   }
 
-  /// ----------------------------------------------------
-  /// OPERAR ARITMÉTICAMENTE
-  /// ----------------------------------------------------
   dynamic _operar(dynamic a, String op, dynamic b) {
-    // Convertir a números si son strings
     num numA = a is num ? a : num.tryParse(a.toString()) ?? 0;
     num numB = b is num ? b : num.tryParse(b.toString()) ?? 0;
 
@@ -541,19 +464,14 @@ class InterpreterManager {
       case "*":
         return numA * numB;
       case "/":
-        // División real
         return numA / numB;
       case "%":
-        // Módulo (resto de la división)
         return numA % numB;
       default:
         return null;
     }
   }
 
-  /// ----------------------------------------------------
-  /// RESOLVER VALOR: número, texto o variable
-  /// ----------------------------------------------------
   dynamic _resolverValor(Token t) {
     if (t.tipo == TipoToken.numero) {
       return num.parse(t.lexema);
@@ -569,15 +487,12 @@ class InterpreterManager {
       print(
         '[RESOLVER] Variable ${t.lexema} = $valor (símbolo: ${simbolo != null ? "existe" : "NO EXISTE"})',
       );
-      return valor; // Retornar 0 en lugar de null
+      return valor;
     }
 
     return t.lexema;
   }
 
-  /// ----------------------------------------------------
-  /// Reiniciar todo
-  /// ----------------------------------------------------
   void reset() {
     estado.reset();
     tablaSimbolos.limpiar();

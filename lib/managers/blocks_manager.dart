@@ -9,7 +9,6 @@ class BlocksManager extends Notifier<List<BlockModel>> {
   @override
   List<BlockModel> build() => [];
 
-  /// Agregar bloque básico
   void agregarBloque(
     String tipo,
     String display, {
@@ -28,14 +27,10 @@ class BlocksManager extends Notifier<List<BlockModel>> {
     state = [];
   }
 
-  /// ----------------------------------------
-  /// CONVERTIR BLOQUES → PSEUDOCÓDIGO COMPLETO
-  /// ----------------------------------------
   String convertirAPseudocodigo() {
     final buffer = StringBuffer();
-    int nivelIndentacion = 1; // Empieza con nivel 1 (dentro de INICIO)
+    int nivelIndentacion = 1;
 
-    // Añadir INICIO
     buffer.writeln("INICIO");
 
     for (final b in state) {
@@ -92,7 +87,6 @@ class BlocksManager extends Notifier<List<BlockModel>> {
       }
     }
 
-    // Añadir FIN
     buffer.writeln("FIN");
 
     return buffer.toString();

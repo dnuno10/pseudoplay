@@ -53,7 +53,6 @@ class _PredeterminedAlgorithmsViewState
       ),
       child: Stack(
         children: [
-          // CRT scanlines
           _buildScanlines(w, h),
 
           Container(
@@ -84,9 +83,6 @@ class _PredeterminedAlgorithmsViewState
     );
   }
 
-  // ------------------------------------------------------------
-  // CRT SCANLINES
-  // ------------------------------------------------------------
   Widget _buildScanlines(double w, double h) {
     return AnimatedBuilder(
       animation: _crtController,
@@ -99,9 +95,6 @@ class _PredeterminedAlgorithmsViewState
     );
   }
 
-  // ------------------------------------------------------------
-  // HEADER RETRO
-  // ------------------------------------------------------------
   Widget _buildHeader(double w, double h) {
     return Container(
       width: double.infinity,
@@ -140,9 +133,6 @@ class _PredeterminedAlgorithmsViewState
     );
   }
 
-  // ------------------------------------------------------------
-  // TABS DE NIVEL
-  // ------------------------------------------------------------
   Widget _buildTabs(double w, double h) {
     return Container(
       color: AppColors.purple.withOpacity(0.1),
@@ -196,9 +186,6 @@ class _PredeterminedAlgorithmsViewState
     );
   }
 
-  // ------------------------------------------------------------
-  // CONTENIDO DE TABS
-  // ------------------------------------------------------------
   Widget _buildTabContent(
     double w,
     double h,
@@ -214,9 +201,6 @@ class _PredeterminedAlgorithmsViewState
     );
   }
 
-  // ------------------------------------------------------------
-  // LISTA RETRO
-  // ------------------------------------------------------------
   Widget _buildList(double w, double h, List<PredeterminedAlgorithm> data) {
     if (data.isEmpty) {
       return Center(
@@ -248,9 +232,6 @@ class _PredeterminedAlgorithmsViewState
     );
   }
 
-  // ------------------------------------------------------------
-  // PREVIEW RETRO
-  // ------------------------------------------------------------
   void _showPreview(double w, double h, PredeterminedAlgorithm algorithm) {
     showDialog(
       context: context,
@@ -342,9 +323,6 @@ class _PredeterminedAlgorithmsViewState
   }
 }
 
-// ---------------------------------------------------------------------
-// CARD DE ALGORITMO — ESTILO RETRO ARCADE
-// ---------------------------------------------------------------------
 class _AlgorithmCard extends StatelessWidget {
   final double w;
   final double h;
@@ -474,9 +452,6 @@ class _AlgorithmCard extends StatelessWidget {
   }
 }
 
-// ------------------------------------------------------------
-// SCANLINE PAINTER
-// ------------------------------------------------------------
 class _ScanlinePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {

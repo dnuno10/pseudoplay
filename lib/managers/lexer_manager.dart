@@ -8,7 +8,6 @@ final lexerManagerProvider = Provider((ref) => LexerManager());
 class LexerManager {
   LexerManager();
 
-  // Palabras reservadas del pseudocódigo
   final List<String> palabrasReservadas = [
     "Si",
     "Entonces",
@@ -23,13 +22,11 @@ class LexerManager {
     "Llamar",
     "Fin",
     "FinPrograma",
-    // Uppercase variants
     "INICIO",
     "VARIABLE",
     "LEER",
     "ESCRIBIR",
     "FIN",
-    // Lowercase variants
     "inicio-programa",
     "leer",
     "escribir",
@@ -53,9 +50,6 @@ class LexerManager {
     for (final palabra in palabrasReservadas) palabra.toUpperCase(),
   };
 
-  /// ------------------------------------------
-  /// MÉTODO PRINCIPAL → ANALIZAR CÓDIGO
-  /// ------------------------------------------
   List<Token> analizar(String codigo) {
     List<Token> tokens = [];
 
@@ -74,25 +68,21 @@ class LexerManager {
     for (int i = 0; i < codigo.length; i++) {
       String c = codigo[i];
 
-      // Manejo de comentarios de línea (//)
       if (c == '/' && i + 1 < codigo.length && codigo[i + 1] == '/') {
         agregarTokenDesdeBuffer();
-        // Saltar todo hasta el fin de línea
         while (i < codigo.length && codigo[i] != '\n') {
           i++;
           columna++;
         }
-        // No incrementar i aquí, el salto de línea se manejará en la siguiente iteración
-        i--; // Retroceder uno para que el \n se procese normalmente
+        i--;
         continue;
       }
 
-      // Manejo de cadenas de texto entre comillas
       if (c == '"') {
         agregarTokenDesdeBuffer();
         String cadena = '"';
         int inicio = columna;
-        i++; // Saltar la comilla inicial
+        i++;
         columna++;
 
         while (i < codigo.length && codigo[i] != '"') {
@@ -107,7 +97,7 @@ class LexerManager {
         }
 
         if (i < codigo.length) {
-          cadena += '"'; // Agregar comilla final
+          cadena += '"';
           columna++;
         }
 
@@ -122,7 +112,6 @@ class LexerManager {
         continue;
       }
 
-      // Saltos de línea
       if (c == "\n") {
         agregarTokenDesdeBuffer();
         tokens.add(
@@ -138,14 +127,12 @@ class LexerManager {
         continue;
       }
 
-      // Espacios → Separan tokens
       if (c.trim().isEmpty) {
         agregarTokenDesdeBuffer();
         columna++;
         continue;
       }
 
-      // Comparadores de 2 caracteres
       if (i + 1 < codigo.length) {
         String dos = c + codigo[i + 1];
         if (comparadores.contains(dos)) {
@@ -158,13 +145,12 @@ class LexerManager {
               columna: columna,
             ),
           );
-          i++; // saltar el siguiente char
+          i++;
           columna += 2;
           continue;
         }
       }
 
-      // Caracteres especiales simples
       if (["(", ")", "[", "]", "{", "}", ",", "="].contains(c)) {
         agregarTokenDesdeBuffer();
 
@@ -185,7 +171,6 @@ class LexerManager {
         continue;
       }
 
-      // Operadores aritméticos
       if (operadores.contains(c)) {
         agregarTokenDesdeBuffer();
         tokens.add(
@@ -200,20 +185,15 @@ class LexerManager {
         continue;
       }
 
-      // Si es parte de un token → acumular en buffer
       buffer += c;
       columna++;
     }
 
-    // Agregar último token acumulado
     agregarTokenDesdeBuffer();
 
     return tokens;
   }
 
-  /// ------------------------------------------
-  /// CLASIFICAR TOKEN (versión Dart del Java)
-  /// ------------------------------------------
   TipoToken _clasificar(String lexema) {
     if (_palabrasReservadasNormalized.contains(lexema.toUpperCase())) {
       return TipoToken.palabraReservada;
@@ -232,12 +212,10 @@ class LexerManager {
       return TipoToken.numero;
     }
 
-    // TEXTO entre comillas
     if (lexema.startsWith('"') && lexema.endsWith('"')) {
       return TipoToken.texto;
     }
 
-    // Identificador: permite letras (incluyendo acentos y ñ), números y guión bajo
     final isIdent = RegExp(r"^[a-zA-ZáéíóúÁÉÍÓÚñÑ_][a-zA-ZáéíóúÁÉÍÓÚñÑ0-9_]*$");
     if (isIdent.hasMatch(lexema)) {
       return TipoToken.identificador;
